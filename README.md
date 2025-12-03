@@ -1,12 +1,57 @@
-![eternalai.org](./assets/banner.png)
-
-
 # @eternalai-org/sdk
 
 Official TypeScript SDK for **EternalAI** - The next-generation API platform for AI applications. Access hundreds of AI models through one unified interface with cashback rewards on every API call.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+## Quick Start
+
+```typescript
+import { EternalAPI } from '@eternalai-org/sdk';
+
+const eternalApi = new EternalAPI({ apiKey: 'your-api-key' });
+
+const result = await eternalApi.chat.send({
+  messages: [
+    {
+      role: 'user',
+      content: 'Hello, how are you?',
+    },
+  ],
+  model: 'openai/gpt-5.1',
+  stream: true, // optional
+});
+
+for await (const chunk of result) {
+  console.log(chunk.choices[0].delta.content);
+}
+```
+
+## Installation
+
+Install directly from GitHub (works with private repositories):
+
+```bash
+# Using npm
+npm install git+https://github.com/eternalai-org/sdk.git
+
+# Using yarn
+yarn add git+https://github.com/eternalai-org/sdk.git
+
+# Using pnpm
+pnpm add git+https://github.com/eternalai-org/sdk.git
+
+# Install specific version/tag
+npm install git+https://github.com/eternalai-org/sdk.git#v0.1.0
+```
+
+## Getting Your API Key
+
+1. Visit [eternalai.org/api/build](https://eternalai.org/api/build)
+2. Buy credits (can be used with any AI model)
+3. Get your API key from the dashboard
+4. Start building and earning cashback!
 
 ## Why EternalAI?
 
@@ -38,90 +83,6 @@ Access multiple AI providers through one unified API:
 - **Grok** - xAI's Grok models
 - **Gemini** - Google's Gemini models
 - **And more** - Tavily, Qwen, Wan, Nano Banana, and growing
-
-## Installation
-
-Install directly from GitHub (works with private repositories):
-
-```bash
-# Using npm
-npm install git+https://github.com/eternalai-org/sdk.git
-
-# Using yarn
-yarn add git+https://github.com/eternalai-org/sdk.git
-
-# Using pnpm
-pnpm add git+https://github.com/eternalai-org/sdk.git
-
-# Install specific version/tag
-npm install git+https://github.com/eternalai-org/sdk.git#v0.1.0
-```
-
-## Getting Your API Key
-
-1. Visit [eternalai.org/api/build](https://eternalai.org/api/build)
-2. Buy credits (can be used with any AI model)
-3. Get your API key from the dashboard
-4. Start building and earning cashback!
-
-## Quick Start
-
-### Basic Usage (Streaming)
-
-```typescript
-import { EternalAPI } from '@eternalai-org/sdk';
-
-const eternalApi = new EternalAPI({ apiKey: 'your-api-key' });
-
-const result = await eternalApi.chat.send({
-  messages: [
-    {
-      role: 'user',
-      content: 'Hello, how are you?',
-    },
-  ],
-  model: 'openai/gpt-5.1',
-  stream: true,
-});
-
-for await (const chunk of result) {
-  console.log(chunk.choices[0].delta.content);
-}
-```
-
-### Non-Streaming Usage
-
-```typescript
-import { EternalAPI } from '@eternalai-org/sdk';
-
-const eternalApi = new EternalAPI({ apiKey: 'your-api-key' });
-
-const result = await eternalApi.chat.send({
-  messages: [
-    {
-      role: 'user',
-      content: 'What is the capital of France?',
-    },
-  ],
-  model: 'openai/gpt-5.1',
-  stream: false, // or omit this line
-});
-
-console.log(result.choices[0].message.content);
-```
-
-### System Prompts
-
-```typescript
-const result = await eternalApi.chat.send({
-  messages: [
-    { role: 'system', content: 'You are a helpful assistant.' },
-    { role: 'user', content: 'Explain quantum computing' },
-  ],
-  model: 'openai/gpt-5.1',
-  stream: true,
-});
-```
 
 ## API Reference
 
