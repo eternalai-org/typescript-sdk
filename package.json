@@ -1,0 +1,80 @@
+{
+    "name": "@eternalai-org/sdk",
+    "version": "0.1.0",
+    "description": "Official TypeScript SDK for EternalAI - Next-generation API platform with unified access to hundreds of AI models, cashback rewards, and OpenAI-compatible streaming support",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "test": "vitest run",
+        "test:watch": "vitest watch",
+        "test:coverage": "vitest run --coverage",
+        "type-check": "tsc --noEmit",
+        "lint": "eslint src --ext .ts",
+        "lint:fix": "eslint src --ext .ts --fix",
+        "format": "prettier --write \"src/**/*.ts\"",
+        "format:check": "prettier --check \"src/**/*.ts\"",
+        "prepare": "npm run build",
+        "prepublishOnly": "npm run build"
+    },
+    "keywords": [
+        "eternalai",
+        "ai",
+        "openai",
+        "chat",
+        "gpt",
+        "claude",
+        "gemini",
+        "api",
+        "streaming",
+        "typescript",
+        "sdk",
+        "cashback",
+        "llm",
+        "artificial-intelligence"
+    ],
+    "author": "EternalAI",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/eternalai-org/sdk.git"
+    },
+    "bugs": {
+        "url": "https://github.com/eternalai-org/sdk/issues"
+    },
+    "homepage": "https://github.com/eternalai-org/sdk#readme",
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.5",
+        "@typescript-eslint/eslint-plugin": "^6.15.0",
+        "@typescript-eslint/parser": "^6.15.0",
+        "@vitest/coverage-v8": "^1.0.4",
+        "eslint": "^8.56.0",
+        "prettier": "^3.1.1",
+        "tsup": "^8.0.1",
+        "typescript": "^5.3.3",
+        "vitest": "^1.0.4"
+    }
+}

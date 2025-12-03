@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'yarn'
+      
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      
+      - name: Type checking
+        run: npm run type-check
+      
+      - name: Lint code
+        run: npm run lint
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Build production bundle
+        run: npm run build
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          release_name: Release ${{ github.event.inputs.version }}
+          body: |
+            Release ${{ github.event.inputs.version }}
+            
+            See [CHANGELOG.md](https://github.com/eternalai-org/sdk/blob/${{ github.event.inputs.version }}/CHANGELOG.md) for details.
+          draft: false
+          prerelease: false

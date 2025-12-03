@@ -1,0 +1,18 @@
+{
+    "name": "node-example",
+    "version": "1.0.0",
+    "description": "Node.js example for @eternalai-org/sdk",
+    "type": "module",
+    "scripts": {
+        "streaming": "tsx streaming.ts",
+        "non-streaming": "tsx non-streaming.ts"
+    },
+    "dependencies": {
+        "@eternalai-org/sdk": "file:../..",
+        "dotenv": "^16.3.1"
+    },
+    "devDependencies": {
+        "tsx": "^4.7.0",
+        "@types/node": "^20.10.5"
+    }
+}

@@ -1,0 +1,52 @@
+# Build output
+# dist/ - included for GitHub package installs
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+.eslintcache
+.stylelintcache
+
+# Package manager
+.npm
+.yarn/
+.pnp.*
+*.tgz
+
+# Test
+.vitest/stamp-*
+vite.config.ts.timestamp-*
+prepare-deploy.sh
