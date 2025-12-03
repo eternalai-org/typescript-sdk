@@ -1,4 +1,4 @@
-# Contributing to @eternalai-org/sdk
+# Contributing to @eternalai-org/typescript-sdk
 
 Thank you for your interest in contributing! This document provides guidelines for development.
 

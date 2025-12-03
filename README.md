@@ -1,14 +1,15 @@
-# @eternalai-org/sdk
+# @eternalai-org/typescript-sdk
 
 Official TypeScript SDK for **EternalAI** - The next-generation API platform for AI applications. Access hundreds of AI models through one unified interface with cashback rewards on every API call.
 
+[![npm version](https://img.shields.io/npm/v/@eternalai-org/typescript-sdk.svg)](https://www.npmjs.com/package/@eternalai-org/typescript-sdk)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 ## Quick Start
 
 ```typescript
-import { EternalAPI } from '@eternalai-org/sdk';
+import { EternalAPI } from '@eternalai-org/typescript-sdk';
 
 const eternalApi = new EternalAPI({ apiKey: 'your-api-key' });
 
@@ -30,20 +31,23 @@ for await (const chunk of result) {
 
 ## Installation
 
-Install directly from GitHub (works with private repositories):
+Install from npm:
 
 ```bash
 # Using npm
-npm install git+https://github.com/eternalai-org/sdk.git
+npm install @eternalai-org/typescript-sdk
 
 # Using yarn
-yarn add git+https://github.com/eternalai-org/sdk.git
+yarn add @eternalai-org/typescript-sdk
 
 # Using pnpm
-pnpm add git+https://github.com/eternalai-org/sdk.git
+pnpm add @eternalai-org/typescript-sdk
+```
 
-# Install specific version/tag
-npm install git+https://github.com/eternalai-org/sdk.git#v0.1.0
+Or install directly from GitHub:
+
+```bash
+npm install git+https://github.com/eternalai-org/sdk.git
 ```
 
 ## Getting Your API Key
@@ -144,7 +148,7 @@ import type {
   ChatCompletionMessage,
   ChatCompletionNonStreamingChoice,
   ChatCompletionResponse,
-} from '@eternalai-org/sdk';
+} from '@eternalai-org/typescript-sdk';
 ```
 
 ## Error Handling
@@ -204,6 +208,7 @@ MIT - see [LICENSE](./LICENSE) file for details.
 ## Support
 
 For issues and questions:
+- 📦 **npm Package**: [npmjs.com/package/@eternalai-org/typescript-sdk](https://www.npmjs.com/package/@eternalai-org/typescript-sdk)
 - 🌐 **Website**: [eternalai.org](https://eternalai.org)
 - 📖 **API Platform**: [eternalai.org/api/build](https://eternalai.org/api/build)
 - 🐛 **GitHub Issues**: [github.com/eternalai-org/sdk/issues](https://github.com/eternalai-org/sdk/issues)

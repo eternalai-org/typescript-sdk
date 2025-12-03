@@ -1,5 +1,6 @@
 {
     "name": "@eternalai-org/sdk",
+    "name": "@eternalai-org/typescript-sdk",
     "version": "0.1.0",
     "description": "Official TypeScript SDK for EternalAI - Next-generation API platform with unified access to hundreds of AI models, cashback rewards, and OpenAI-compatible streaming support",
     "type": "module",

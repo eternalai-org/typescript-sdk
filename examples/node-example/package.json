@@ -1,14 +1,14 @@
 {
     "name": "node-example",
     "version": "1.0.0",
-    "description": "Node.js example for @eternalai-org/sdk",
+    "description": "Node.js example for @eternalai-org/typescript-sdk",
     "type": "module",
     "scripts": {
         "streaming": "tsx streaming.ts",
         "non-streaming": "tsx non-streaming.ts"
     },
     "dependencies": {
-        "@eternalai-org/sdk": "file:../..",
+        "@eternalai-org/typescript-sdk": "file:../..",
         "dotenv": "^16.3.1"
     },
     "devDependencies": {

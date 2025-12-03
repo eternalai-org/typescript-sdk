@@ -1,6 +1,6 @@
 # Node.js Example
 
-This example demonstrates how to use @eternalai-org/sdk in a Node.js application.
+This example demonstrates how to use @eternalai-org/typescript-sdk in a Node.js application.
 
 ## Installation
 

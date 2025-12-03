@@ -50,3 +50,4 @@ Thumbs.db
 .vitest/stamp-*
 vite.config.ts.timestamp-*
 prepare-deploy.sh
+*.sh

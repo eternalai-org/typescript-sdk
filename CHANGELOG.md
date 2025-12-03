@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-12-02
 
 ### Added
-- 🎉 Initial release of @eternalai-org/sdk
+- 🎉 Initial release of @eternalai-org/typescript-sdk
 - `EternalAPI` client class for chat completions
 - `chat.send()` method with streaming and non-streaming support
 - OpenAI-compatible API interface
