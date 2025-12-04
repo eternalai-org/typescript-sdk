@@ -5,7 +5,8 @@
     "type": "module",
     "scripts": {
         "streaming": "bun streaming.ts",
-        "non-streaming": "bun non-streaming.ts"
+        "non-streaming": "bun non-streaming.ts",
+        "image-generation": "bun image-generation.ts"
     },
     "dependencies": {
         "@eternalai-org/sdk": "file:../..",

@@ -74,7 +74,6 @@ var Chat = class {
               const chunk = JSON.parse(data);
               yield chunk;
             } catch (error) {
-              console.error("Failed to parse streaming chunk:", error);
             }
           }
         }

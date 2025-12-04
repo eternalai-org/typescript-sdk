@@ -36,6 +36,18 @@ bun run non-streaming
 npm run non-streaming
 ```
 
+### Image Generation Example
+
+For models that support image generation, you can use the `image_config` option:
+
+```bash
+# Using Bun (recommended)
+bun run image-generation
+
+# Or using npm
+npm run image-generation
+```
+
 ## Environment Variables
 
 Create a `.env` file in this directory:
@@ -49,3 +61,4 @@ ETERNALAI_API_KEY=your-api-key-here
 See the source files:
 - `streaming.ts` - Shows streaming chat completions
 - `non-streaming.ts` - Shows regular chat completions
+- `image-generation.ts` - Shows image generation with `image_config` option

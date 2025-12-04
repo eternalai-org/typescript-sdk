@@ -190,9 +190,6 @@ describe('Chat Service', () => {
         });
 
         it('should skip invalid JSON chunks in streaming response', async () => {
-            // Suppress console.error for this test since we're testing error handling
-            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-
             const mockStream = new ReadableStream({
                 start(controller) {
                     const validChunk = {
@@ -212,6 +209,9 @@ describe('Chat Service', () => {
 
             mockFetch.mockResolvedValueOnce({
                 ok: true,
+                headers: new Headers({
+                    'content-type': 'text/event-stream',
+                }),
                 body: mockStream,
             });
 
@@ -226,14 +226,9 @@ describe('Chat Service', () => {
                 chunks.push(chunk);
             }
 
+            // Should only receive valid chunks, invalid ones are silently skipped
             expect(chunks).toHaveLength(1);
             expect(chunks[0].choices[0].delta.content).toBe('valid');
-            expect(consoleErrorSpy).toHaveBeenCalledWith(
-                'Failed to parse streaming chunk:',
-                expect.any(Error)
-            );
-
-            consoleErrorSpy.mockRestore();
         });
     });
 

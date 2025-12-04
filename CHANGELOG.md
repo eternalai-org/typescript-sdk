@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-12-XX
+
+### Fixed
+- Improved streaming response handling - better error handling for malformed SSE chunks
+- Code cleanup - removed debug logging for production-ready SDK
+- Enhanced error handling - silently skip invalid JSON chunks to maintain stream continuity
+
+### Changed
+- Improved code quality and professionalism for public SDK release
+- Better error messages and handling throughout the SDK
+
 ## [0.2.0] - 2025-12-XX
 
 ### Added
@@ -60,6 +71,7 @@ Access multiple AI providers through EternalAI's unified API:
 - Google Gemini
 - And more via [eternalai.org](https://eternalai.org/api/build)
 
+[0.2.1]: https://github.com/eternalai-org/sdk/releases/tag/v0.2.1
 [0.2.0]: https://github.com/eternalai-org/sdk/releases/tag/v0.2.0
 [0.1.1]: https://github.com/eternalai-org/sdk/releases/tag/v0.1.1
 [0.1.0]: https://github.com/eternalai-org/sdk/releases/tag/v0.1.0

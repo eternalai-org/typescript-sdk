@@ -123,7 +123,8 @@ export class Chat {
               const chunk = JSON.parse(data) as ChatCompletionChunk;
               yield chunk;
             } catch (error) {
-              console.error('Failed to parse streaming chunk:', error);
+              // Silently skip invalid JSON chunks to maintain stream continuity
+              // In production, invalid chunks are typically malformed SSE data
             }
           }
         }
