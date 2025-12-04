@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EternalAPI } from '../src/index';
+import { EternalAI } from '../src/index';
 import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
@@ -8,13 +8,13 @@ import type {
 
 describe('Integration Tests', () => {
   describe('SDK Exports', () => {
-    it('should export EternalAPI class', () => {
-      expect(EternalAPI).toBeDefined();
+    it('should export EternalAI class', () => {
+      expect(EternalAI).toBeDefined();
     });
 
-    it('should create instance of EternalAPI', () => {
-      const client = new EternalAPI({ apiKey: 'test-key' });
-      expect(client).toBeInstanceOf(EternalAPI);
+    it('should create instance of EternalAI', () => {
+      const client = new EternalAI({ apiKey: 'test-key' });
+      expect(client).toBeInstanceOf(EternalAI);
     });
   });
 
@@ -32,14 +32,14 @@ describe('Integration Tests', () => {
 
   describe('End-to-End Flow', () => {
     it('should initialize client and access chat service', () => {
-      const client = new EternalAPI({ apiKey: 'test-key' });
+      const client = new EternalAI({ apiKey: 'test-key' });
       expect(client.chat).toBeDefined();
       expect(client.chat.send).toBeDefined();
       expect(typeof client.chat.send).toBe('function');
     });
 
     it('should accept all valid message roles', () => {
-      const client = new EternalAPI({ apiKey: 'test-key' });
+      const client = new EternalAI({ apiKey: 'test-key' });
       const request: ChatCompletionRequest = {
         messages: [
           { role: 'system', content: 'System prompt' },
@@ -53,7 +53,7 @@ describe('Integration Tests', () => {
     });
 
     it('should support optional configuration', () => {
-      const client = new EternalAPI({
+      const client = new EternalAI({
         apiKey: 'test-key',
         timeout: 30000,
       });
@@ -73,7 +73,7 @@ describe('Integration Tests', () => {
     it('should enforce required fields in config', () => {
       // This test verifies TypeScript compilation, not runtime behavior
       const config = { apiKey: 'test-key' };
-      const client = new EternalAPI(config);
+      const client = new EternalAI(config);
       expect(client).toBeDefined();
     });
 
@@ -88,7 +88,7 @@ describe('Integration Tests', () => {
     });
 
     it('should allow optional fields to be omitted', () => {
-      const client = new EternalAPI({ apiKey: 'test' });
+      const client = new EternalAI({ apiKey: 'test' });
       const request: ChatCompletionRequest = {
         messages: [{ role: 'user', content: 'test' }],
         model: 'gpt-4o-mini',
@@ -101,8 +101,7 @@ describe('Integration Tests', () => {
 
   describe('Error Messages', () => {
     it('should provide clear error message for missing API key', () => {
-      expect(() => new EternalAPI({ apiKey: '' })).toThrow('API key is required');
+      expect(() => new EternalAI({ apiKey: '' })).toThrow('API key is required');
     });
   });
 });
-

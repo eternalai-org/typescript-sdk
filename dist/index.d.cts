@@ -1,7 +1,7 @@
 /**
- * EternalAPI configuration
+ * EternalAI configuration
  */
-interface EternalAPIConfig {
+interface EternalAIConfig {
     apiKey: string;
     timeout?: number;
 }
@@ -115,7 +115,7 @@ interface ChatCompletionResponse {
 declare class Chat {
     private readonly config;
     private readonly baseUrl;
-    constructor(config: EternalAPIConfig);
+    constructor(config: EternalAIConfig);
     /**
      * Send a streaming chat completion request
      * @param request - Chat completion request with stream: true, and optional image_config for image generation models
@@ -144,10 +144,10 @@ declare class Chat {
     private handleStreamingResponse;
 }
 
-declare class EternalAPI {
+declare class EternalAI {
     readonly chat: Chat;
     private readonly config;
-    constructor(config: EternalAPIConfig);
+    constructor(config: EternalAIConfig);
 }
 
-export { Chat, type ChatCompletionChoice, type ChatCompletionChunk, type ChatCompletionDelta, type ChatCompletionMessage, type ChatCompletionNonStreamingChoice, type ChatCompletionNonStreamingRequest, type ChatCompletionRequest, type ChatCompletionRequestBase, type ChatCompletionResponse, type ChatCompletionStreamingRequest, type ChatMessage, EternalAPI, type EternalAPIConfig, type MessageRole };
+export { Chat, type ChatCompletionChoice, type ChatCompletionChunk, type ChatCompletionDelta, type ChatCompletionMessage, type ChatCompletionNonStreamingChoice, type ChatCompletionNonStreamingRequest, type ChatCompletionRequest, type ChatCompletionRequestBase, type ChatCompletionResponse, type ChatCompletionStreamingRequest, type ChatMessage, EternalAI, type EternalAIConfig, type MessageRole };

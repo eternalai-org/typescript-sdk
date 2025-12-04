@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-12-04
+
+### ⚠️ BREAKING CHANGES
+
+> **Important**: This release contains breaking changes. Please update your code when upgrading.
+
+**Class Rename**: `EternalAPI` → `EternalAI`
+- Main class renamed from `EternalAPI` to `EternalAI` for better brand alignment
+- Config interface renamed from `EternalAPIConfig` to `EternalAIConfig`
+- Error messages now reference `EternalAI` instead of `EternalAPI`
+
+**Migration Guide**:
+```typescript
+// Before (v0.2.x)
+import { EternalAPI } from '@eternalai-org/sdk';
+const client = new EternalAPI({ apiKey: 'your-api-key' });
+
+// After (v0.3.0+)
+import { EternalAI } from '@eternalai-org/sdk';
+const eai = new EternalAI({ apiKey: 'your-api-key' });
+```
+
+### Changed
+- Renamed `EternalAPI` class to `EternalAI`
+- Renamed `EternalAPIConfig` interface to `EternalAIConfig`
+- Updated all documentation and examples to use new naming convention
+- Recommended variable name changed from `eternalApi` to `eai` for brevity
+
+### Notes
+- All functionality remains the same - only naming has changed
+- TypeScript will show clear errors if you're using the old class name
+- All 49 tests passing with new naming convention
+
 ## [0.2.1] - 2025-12-XX
 
 ### Fixed
@@ -45,7 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - 🎉 Initial release of @eternalai-org/sdk
-- `EternalAPI` client class for chat completions
+- `EternalAI` client class for chat completions
 - `chat.send()` method with streaming and non-streaming support
 - OpenAI-compatible API interface
 - Full TypeScript type definitions
@@ -71,6 +104,7 @@ Access multiple AI providers through EternalAI's unified API:
 - Google Gemini
 - And more via [eternalai.org](https://eternalai.org/api/build)
 
+[0.3.0]: https://github.com/eternalai-org/sdk/releases/tag/v0.3.0
 [0.2.1]: https://github.com/eternalai-org/sdk/releases/tag/v0.2.1
 [0.2.0]: https://github.com/eternalai-org/sdk/releases/tag/v0.2.0
 [0.1.1]: https://github.com/eternalai-org/sdk/releases/tag/v0.1.1

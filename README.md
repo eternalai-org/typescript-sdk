@@ -11,11 +11,11 @@ Official TypeScript SDK for **EternalAI** - The next-generation API platform for
 ## Quick Start
 
 ```typescript
-import { EternalAPI } from '@eternalai-org/sdk';
+import { EternalAI } from '@eternalai-org/sdk';
 
-const eternalApi = new EternalAPI({ apiKey: 'your-api-key' });
+const eai = new EternalAI({ apiKey: 'your-api-key' });
 
-const result = await eternalApi.chat.send({
+const result = await eai.chat.send({
   messages: [
     {
       role: 'user',
@@ -36,7 +36,7 @@ for await (const chunk of result) {
 For models that support image generation, you can configure image options:
 
 ```typescript
-const result = await eternalApi.chat.send({
+const result = await eai.chat.send({
   messages: [
     {
       role: 'user',
@@ -121,14 +121,14 @@ Access multiple AI providers through one unified API:
 
 ## API Reference
 
-### `EternalAPI`
+### `EternalAI`
 
 Main SDK client class.
 
 #### Constructor
 
 ```typescript
-new EternalAPI(config: EternalAPIConfig)
+new EternalAI(config: EternalAIConfig)
 ```
 
 **Parameters:**
@@ -139,7 +139,7 @@ new EternalAPI(config: EternalAPIConfig)
 **Example:**
 
 ```typescript
-const client = new EternalAPI({
+const client = new EternalAI({
   apiKey: 'your-api-key',
   timeout: 30000, // 30 seconds
 });
@@ -168,7 +168,7 @@ This SDK is written in TypeScript and includes comprehensive type definitions. A
 
 ```typescript
 import type {
-  EternalAPIConfig,
+  EternalAIConfig,
   MessageRole,
   ChatMessage,
   ChatCompletionRequestBase,
@@ -188,7 +188,7 @@ import type {
 
 ```typescript
 try {
-  const result = await eternalApi.chat.send({
+  const result = await eai.chat.send({
     messages: [{ role: 'user', content: 'Hello' }],
     model: 'openai/gpt-5.1',
   });

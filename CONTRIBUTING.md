@@ -71,7 +71,7 @@ Using npm (alternative):
 ```
 src/
 ├── index.ts           # Main entry point
-├── client.ts          # EternalAPI class
+├── client.ts          # EternalAI class
 ├── types/             # TypeScript type definitions
 │   └── index.ts
 └── services/          # Service layer
@@ -118,21 +118,21 @@ Example test:
 
 ```typescript
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EternalAPI } from '../src/client';
+import { EternalAI } from '../src/client';
 
-describe('EternalAPI', () => {
+describe('EternalAI', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('should initialize correctly with valid API key', () => {
-    const client = new EternalAPI({ apiKey: 'test' });
+    const client = new EternalAI({ apiKey: 'test' });
     expect(client).toBeDefined();
     expect(client.chat).toBeDefined();
   });
 
   it('should throw error when API key is missing', () => {
-    expect(() => new EternalAPI({ apiKey: '' })).toThrow('API key is required');
+    expect(() => new EternalAI({ apiKey: '' })).toThrow('API key is required');
   });
 });
 ```

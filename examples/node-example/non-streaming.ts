@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { EternalAPI } from '@eternalai-org/sdk';
+import { EternalAI } from '@eternalai-org/sdk';
 
 async function main() {
     const apiKey = process.env.ETERNALAI_API_KEY;
@@ -8,11 +8,11 @@ async function main() {
         process.exit(1);
     }
 
-    const eternalApi = new EternalAPI({ apiKey });
+    const eai = new EternalAI({ apiKey });
 
     console.log('Sending non-streaming chat request...\n');
 
-    const result = await eternalApi.chat.send({
+    const result = await eai.chat.send({
         messages: [
             {
                 role: 'system',

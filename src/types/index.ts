@@ -1,7 +1,7 @@
 /**
- * EternalAPI configuration
+ * EternalAI configuration
  */
-export interface EternalAPIConfig {
+export interface EternalAIConfig {
   apiKey: string;
   timeout?: number;
 }

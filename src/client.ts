@@ -1,11 +1,11 @@
 import { Chat } from './services/chat';
-import type { EternalAPIConfig } from './types';
+import type { EternalAIConfig } from './types';
 
-export class EternalAPI {
+export class EternalAI {
   public readonly chat: Chat;
-  private readonly config: EternalAPIConfig;
+  private readonly config: EternalAIConfig;
 
-  constructor(config: EternalAPIConfig) {
+  constructor(config: EternalAIConfig) {
     if (!config.apiKey) {
       throw new Error('API key is required');
     }

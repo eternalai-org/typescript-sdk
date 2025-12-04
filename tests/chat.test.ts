@@ -245,7 +245,7 @@ describe('Chat Service', () => {
                     messages: [{ role: 'user', content: 'Hello' }],
                     model: 'gpt-4o-mini',
                 })
-            ).rejects.toThrow('EternalAPI request failed with status 401: Unauthorized');
+            ).rejects.toThrow('EternalAI request failed with status 401: Unauthorized');
         });
 
         it('should throw error when API returns 500 status', async () => {
@@ -260,7 +260,7 @@ describe('Chat Service', () => {
                     messages: [{ role: 'user', content: 'Hello' }],
                     model: 'gpt-4o-mini',
                 })
-            ).rejects.toThrow('EternalAPI request failed with status 500: Internal Server Error');
+            ).rejects.toThrow('EternalAI request failed with status 500: Internal Server Error');
         });
 
         it('should throw error when response body is not readable for streaming', async () => {

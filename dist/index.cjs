@@ -24,7 +24,7 @@ var Chat = class {
     });
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`EternalAPI request failed with status ${response.status}: ${errorText}`);
+      throw new Error(`EternalAI request failed with status ${response.status}: ${errorText}`);
     }
     if (request.stream) {
       if (!response.body) {
@@ -85,7 +85,7 @@ var Chat = class {
 };
 
 // src/client.ts
-var EternalAPI = class {
+var EternalAI = class {
   constructor(config) {
     if (!config.apiKey) {
       throw new Error("API key is required");
@@ -96,6 +96,6 @@ var EternalAPI = class {
 };
 
 exports.Chat = Chat;
-exports.EternalAPI = EternalAPI;
+exports.EternalAI = EternalAI;
 //# sourceMappingURL=index.cjs.map
 //# sourceMappingURL=index.cjs.map

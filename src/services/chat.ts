@@ -1,5 +1,5 @@
 import type {
-  EternalAPIConfig,
+  EternalAIConfig,
   ChatCompletionRequest,
   ChatCompletionStreamingRequest,
   ChatCompletionNonStreamingRequest,
@@ -11,10 +11,10 @@ import type {
  * Chat service for sending messages and receiving responses
  */
 export class Chat {
-  private readonly config: EternalAPIConfig;
+  private readonly config: EternalAIConfig;
   private readonly baseUrl = 'https://open.eternalai.org/api/v1';
 
-  constructor(config: EternalAPIConfig) {
+  constructor(config: EternalAIConfig) {
     this.config = config;
   }
 
@@ -64,7 +64,7 @@ export class Chat {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`EternalAPI request failed with status ${response.status}: ${errorText}`);
+      throw new Error(`EternalAI request failed with status ${response.status}: ${errorText}`);
     }
 
     if (request.stream) {

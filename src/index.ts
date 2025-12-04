@@ -1,11 +1,11 @@
 // Export main SDK client
-export { EternalAPI } from './client';
+export { EternalAI } from './client';
 
 // Export types
 export type {
-  EternalAPIConfig,
   MessageRole,
   ChatMessage,
+  EternalAIConfig,
   ChatCompletionRequestBase,
   ChatCompletionRequest,
   ChatCompletionStreamingRequest,
