@@ -20,21 +20,21 @@ export class Chat {
 
   /**
    * Send a streaming chat completion request
-   * @param request - Chat completion request with stream: true
+   * @param request - Chat completion request with stream: true, and optional image_config for image generation models
    * @returns Async iterable of chat completion chunks
    */
   send(request: ChatCompletionStreamingRequest): Promise<AsyncIterable<ChatCompletionChunk>>;
 
   /**
    * Send a non-streaming chat completion request
-   * @param request - Chat completion request with stream: false or undefined
+   * @param request - Chat completion request with stream: false or undefined, and optional image_config for image generation models
    * @returns Chat completion response
    */
   send(request: ChatCompletionNonStreamingRequest): Promise<ChatCompletionResponse>;
 
   /**
    * Send a chat completion request
-   * @param request - Chat completion request with messages, model, and stream option
+   * @param request - Chat completion request with messages, model, stream option, and optional image_config for image generation models
    * @returns Async iterable of chat completion chunks (if streaming) or single response
    */
   send(
@@ -68,6 +68,10 @@ export class Chat {
     }
 
     if (request.stream) {
+      // Check if body is readable before returning async iterable
+      if (!response.body) {
+        throw new Error('Response body is not readable');
+      }
       return this.handleStreamingResponse(response);
     } else {
       return (await response.json()) as ChatCompletionResponse;

@@ -1,12 +1,16 @@
-# Node.js Example
+# Bun/Node.js Example
 
-This example demonstrates how to use @eternalai-org/typescript-sdk in a Node.js application.
+This example demonstrates how to use @eternalai-org/sdk with Bun (or Node.js).
 
 ## Installation
 
 From this directory:
 
 ```bash
+# Using Bun (recommended)
+bun install
+
+# Or using npm
 npm install
 ```
 
@@ -15,12 +19,20 @@ npm install
 ### Streaming Example
 
 ```bash
+# Using Bun (recommended)
+bun run streaming
+
+# Or using npm
 npm run streaming
 ```
 
 ### Non-Streaming Example
 
 ```bash
+# Using Bun (recommended)
+bun run non-streaming
+
+# Or using npm
 npm run non-streaming
 ```
 

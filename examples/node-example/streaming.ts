@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { EternalAPI } from '@eternalai-org/typescript-sdk';
+import { EternalAPI } from '@eternalai-org/sdk';
 
 async function main() {
     const apiKey = process.env.ETERNALAI_API_KEY;

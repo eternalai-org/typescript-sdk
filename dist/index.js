@@ -25,6 +25,9 @@ var Chat = class {
       throw new Error(`EternalAPI request failed with status ${response.status}: ${errorText}`);
     }
     if (request.stream) {
+      if (!response.body) {
+        throw new Error("Response body is not readable");
+      }
       return this.handleStreamingResponse(response);
     } else {
       return await response.json();

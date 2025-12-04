@@ -1,4 +1,4 @@
-# Contributing to @eternalai-org/typescript-sdk
+# Contributing to @eternalai-org/sdk
 
 Thank you for your interest in contributing! This document provides guidelines for development.
 
@@ -12,7 +12,10 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 2. **Install dependencies**
    ```bash
-   # Using yarn (recommended - project uses yarn.lock)
+   # Using Bun (recommended - fastest)
+   bun install
+   
+   # Using yarn
    yarn install
    
    # Or using npm
@@ -21,16 +24,37 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 3. **Run tests**
    ```bash
+   # Using Bun (recommended)
+   bun test
+   
+   # Using npm
    npm test
    ```
 
 4. **Build the SDK**
    ```bash
+   # Using Bun (recommended)
+   bun run build
+   
+   # Using npm
    npm run build
    ```
 
 ## Development Commands
 
+Using Bun (recommended):
+- `bun run dev` - Build in watch mode
+- `bun test` - Run tests
+- `bun run test:watch` - Run tests in watch mode
+- `bun run test:coverage` - Generate test coverage report
+- `bun run type-check` - Run TypeScript type checking
+- `bun run lint` - Lint code with ESLint
+- `bun run lint:fix` - Auto-fix linting issues
+- `bun run format` - Format code with Prettier
+- `bun run format:check` - Check code formatting
+- `bun run build` - Build production bundle
+
+Using npm (alternative):
 - `npm run dev` - Build in watch mode
 - `npm test` - Run tests
 - `npm run test:watch` - Run tests in watch mode
@@ -71,6 +95,11 @@ tests/                 # Test files
 Run linting and formatting before committing:
 
 ```bash
+# Using Bun (recommended)
+bun run lint:fix
+bun run format
+
+# Using npm
 npm run lint:fix
 npm run format
 ```
@@ -123,7 +152,14 @@ Please maintain 100% coverage for all new code. View the test suite documentatio
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests and linting (`npm test && npm run lint`)
+4. Run tests and linting:
+   ```bash
+   # Using Bun (recommended)
+   bun test && bun run lint
+   
+   # Using npm
+   npm test && npm run lint
+   ```
 5. Commit your changes with a descriptive message
 6. Push to your fork (`git push origin feature/amazing-feature`)
 7. Open a Pull Request

@@ -1,15 +1,17 @@
-# @eternalai-org/typescript-sdk
+# @eternalai-org/sdk
 
 Official TypeScript SDK for **EternalAI** - The next-generation API platform for AI applications. Access hundreds of AI models through one unified interface with cashback rewards on every API call.
 
-[![npm version](https://img.shields.io/npm/v/@eternalai-org/typescript-sdk.svg)](https://www.npmjs.com/package/@eternalai-org/typescript-sdk)
+[![npm version](https://img.shields.io/npm/v/@eternalai-org/sdk.svg)](https://www.npmjs.com/package/@eternalai-org/sdk)
+[![Bun](https://img.shields.io/badge/Bun-1.0+-black?logo=bun)](https://bun.sh)
+[![Yarn](https://img.shields.io/badge/Yarn-1.22+-2C8EBB?logo=yarn&logoColor=white)](https://yarnpkg.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 ## Quick Start
 
 ```typescript
-import { EternalAPI } from '@eternalai-org/typescript-sdk';
+import { EternalAPI } from '@eternalai-org/sdk';
 
 const eternalApi = new EternalAPI({ apiKey: 'your-api-key' });
 
@@ -29,24 +31,53 @@ for await (const chunk of result) {
 }
 ```
 
+### Image Generation Example
+
+For models that support image generation, you can configure image options:
+
+```typescript
+const result = await eternalApi.chat.send({
+  messages: [
+    {
+      role: 'user',
+      content: 'Generate a beautiful landscape',
+    },
+  ],
+  model: 'image-generation-model',
+  image_config: {
+    aspect_ratio: '16:9', // Optional: '16:9', '1:1', '9:16', etc.
+  },
+  stream: false,
+});
+
+console.log(result.choices[0].message.content);
+```
+
 ## Installation
 
 Install from npm:
 
 ```bash
+# Using Bun (recommended)
+bun add @eternalai-org/sdk
+
 # Using npm
-npm install @eternalai-org/typescript-sdk
+npm install @eternalai-org/sdk
 
 # Using yarn
-yarn add @eternalai-org/typescript-sdk
+yarn add @eternalai-org/sdk
 
 # Using pnpm
-pnpm add @eternalai-org/typescript-sdk
+pnpm add @eternalai-org/sdk
 ```
 
 Or install directly from GitHub:
 
 ```bash
+# Using Bun
+bun add git+https://github.com/eternalai-org/sdk.git
+
+# Using npm
 npm install git+https://github.com/eternalai-org/sdk.git
 ```
 
@@ -123,6 +154,8 @@ Send a chat completion request.
 - `request.messages` (ChatMessage[], required) - Array of chat messages
 - `request.model` (string, required) - Model name (e.g., `"openai/gpt-5.1"`)
 - `request.stream` (boolean, optional) - Enable streaming responses (default: `false`)
+- `request.image_config` (ImageConfigOptions, optional) - Image generation configuration for models that support image generation
+  - `image_config.aspect_ratio` (string, optional) - Aspect ratio for generated images (e.g., `"16:9"`, `"1:1"`, `"9:16"`)
 
 **Returns:**
 
@@ -148,7 +181,7 @@ import type {
   ChatCompletionMessage,
   ChatCompletionNonStreamingChoice,
   ChatCompletionResponse,
-} from '@eternalai-org/typescript-sdk';
+} from '@eternalai-org/sdk';
 ```
 
 ## Error Handling
@@ -166,10 +199,11 @@ try {
 }
 ```
 
-## Browser vs Node.js
+## Browser vs Node.js vs Bun
 
-This SDK works in both Node.js and browser environments:
+This SDK works in multiple environments:
 
+- **Bun** - Full support (v1.0.0+) - Recommended for best performance
 - **Node.js** - Full support (v18+)
 - **Browser** - Requires a bundler (Webpack, Vite, etc.) that supports ESM
 
@@ -178,13 +212,14 @@ This SDK works in both Node.js and browser environments:
 This SDK includes a comprehensive test suite. To run the tests:
 
 ```bash
-# Run all tests
+# Using Bun (recommended)
+bun test
+bun run test:watch
+bun run test:coverage
+
+# Using npm
 npm test
-
-# Run tests in watch mode
 npm run test:watch
-
-# Generate coverage report
 npm run test:coverage
 ```
 
@@ -208,7 +243,7 @@ MIT - see [LICENSE](./LICENSE) file for details.
 ## Support
 
 For issues and questions:
-- 📦 **npm Package**: [npmjs.com/package/@eternalai-org/typescript-sdk](https://www.npmjs.com/package/@eternalai-org/typescript-sdk)
+- 📦 **npm Package**: [npmjs.com/package/@eternalai-org/sdk](https://www.npmjs.com/package/@eternalai-org/sdk)
 - 🌐 **Website**: [eternalai.org](https://eternalai.org)
 - 📖 **API Platform**: [eternalai.org/api/build](https://eternalai.org/api/build)
 - 🐛 **GitHub Issues**: [github.com/eternalai-org/sdk/issues](https://github.com/eternalai-org/sdk/issues)

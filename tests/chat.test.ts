@@ -274,17 +274,13 @@ describe('Chat Service', () => {
                 body: null,
             });
 
-            const result = await chat.send({
-                messages: [{ role: 'user', content: 'Hello' }],
-                model: 'gpt-4o-mini',
-                stream: true,
-            });
-
-            await expect(async () => {
-                for await (const chunk of result as AsyncIterable<ChatCompletionChunk>) {
-                    // This should throw
-                }
-            }).rejects.toThrow('Response body is not readable');
+            await expect(
+                chat.send({
+                    messages: [{ role: 'user', content: 'Hello' }],
+                    model: 'gpt-4o-mini',
+                    stream: true,
+                })
+            ).rejects.toThrow('Response body is not readable');
         });
 
         it('should handle network errors', async () => {
@@ -428,6 +424,128 @@ describe('Chat Service', () => {
                     headers: expect.objectContaining({
                         'Content-Type': 'application/json',
                     }),
+                })
+            );
+        });
+    });
+
+    describe('Image Config', () => {
+        it('should include image_config in non-streaming request body', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    id: 'chatcmpl-123',
+                    object: 'chat.completion',
+                    created: Date.now(),
+                    model: 'image-gen-model',
+                    choices: [
+                        {
+                            index: 0,
+                            message: { role: 'assistant', content: 'Image generated' },
+                            finish_reason: 'stop',
+                        },
+                    ],
+                }),
+            });
+
+            const request = {
+                messages: [{ role: 'user', content: 'Generate an image' }],
+                model: 'image-gen-model',
+                stream: false,
+                image_config: {
+                    aspect_ratio: '16:9',
+                },
+            };
+
+            await chat.send(request);
+
+            expect(mockFetch).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    body: JSON.stringify(request),
+                })
+            );
+        });
+
+        it('should include image_config in streaming request body', async () => {
+            const mockStream = new ReadableStream({
+                start(controller) {
+                    controller.enqueue(
+                        new TextEncoder().encode(
+                            `data: ${JSON.stringify({
+                                id: 'chatcmpl-123',
+                                object: 'chat.completion.chunk',
+                                created: Date.now(),
+                                model: 'image-gen-model',
+                                choices: [
+                                    { index: 0, delta: { content: 'Generating' }, finish_reason: null },
+                                ],
+                            })}\n\ndata: [DONE]\n\n`
+                        )
+                    );
+                    controller.close();
+                },
+            });
+
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                body: mockStream,
+            });
+
+            const request = {
+                messages: [{ role: 'user', content: 'Generate an image' }],
+                model: 'image-gen-model',
+                stream: true,
+                image_config: {
+                    aspect_ratio: '1:1',
+                },
+            };
+
+            const result = await chat.send(request);
+            const chunks: ChatCompletionChunk[] = [];
+            for await (const chunk of result as AsyncIterable<ChatCompletionChunk>) {
+                chunks.push(chunk);
+            }
+
+            expect(mockFetch).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    body: JSON.stringify(request),
+                })
+            );
+            expect(chunks.length).toBeGreaterThan(0);
+        });
+
+        it('should work without image_config (optional)', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    id: 'chatcmpl-123',
+                    object: 'chat.completion',
+                    created: Date.now(),
+                    model: 'gpt-4o-mini',
+                    choices: [
+                        {
+                            index: 0,
+                            message: { role: 'assistant', content: 'Response' },
+                            finish_reason: 'stop',
+                        },
+                    ],
+                }),
+            });
+
+            const request = {
+                messages: [{ role: 'user', content: 'Hello' }],
+                model: 'gpt-4o-mini',
+                stream: false,
+            };
+
+            await chat.send(request);
+
+            expect(mockFetch).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    body: JSON.stringify(request),
                 })
             );
         });

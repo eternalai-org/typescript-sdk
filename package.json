@@ -1,7 +1,6 @@
 {
     "name": "@eternalai-org/sdk",
-    "name": "@eternalai-org/typescript-sdk",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Official TypeScript SDK for EternalAI - Next-generation API platform with unified access to hundreds of AI models, cashback rewards, and OpenAI-compatible streaming support",
     "type": "module",
     "main": "./dist/index.cjs",
@@ -35,8 +34,9 @@
         "lint:fix": "eslint src --ext .ts --fix",
         "format": "prettier --write \"src/**/*.ts\"",
         "format:check": "prettier --check \"src/**/*.ts\"",
-        "prepare": "npm run build",
-        "prepublishOnly": "npm run build"
+        "prepare": "bun run build",
+        "prepublishOnly": "bun run build",
+        "publish:npm": "npm publish --access public"
     },
     "keywords": [
         "eternalai",
@@ -65,7 +65,8 @@
     },
     "homepage": "https://github.com/eternalai-org/sdk#readme",
     "engines": {
-        "node": ">=18.0.0"
+        "node": ">=18.0.0",
+        "bun": ">=1.0.0"
     },
     "devDependencies": {
         "@types/node": "^20.10.5",

@@ -16,13 +16,14 @@ tests/
 ## Running Tests
 
 ```bash
-# Run all tests
+# Using Bun (recommended)
+bun test
+bun run test:watch
+bun run test:coverage
+
+# Using npm
 npm test
-
-# Run tests in watch mode
 npm run test:watch
-
-# Generate coverage report
 npm run test:coverage
 ```
 
@@ -63,7 +64,7 @@ The test suite covers:
 
 - **Framework**: [Vitest](https://vitest.dev/)
 - **Coverage**: v8 provider
-- **Environment**: Node.js
+- **Environment**: Bun (recommended) or Node.js
 
 ## Writing New Tests
 
@@ -109,5 +110,5 @@ Target coverage metrics:
 - **Functions**: > 90%
 - **Lines**: > 90%
 
-View coverage report after running `npm run test:coverage` in the `coverage/` directory.
+View coverage report after running `bun run test:coverage` (or `npm run test:coverage`) in the `coverage/` directory.
 

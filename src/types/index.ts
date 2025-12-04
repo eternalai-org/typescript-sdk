@@ -28,23 +28,37 @@ export interface ChatCompletionRequestBase {
 }
 
 /**
+ * Chat completion request with image config
+ */
+export interface ImageConfigOptions {
+  aspect_ratio?: string;
+}
+
+/**
+ * Chat completion request with image config
+ */
+export interface ChatCompletionRequestImageConfig {
+  image_config?: ImageConfigOptions;
+}
+
+/**
  * Chat completion request with optional stream
  */
-export interface ChatCompletionRequest extends ChatCompletionRequestBase {
+export interface ChatCompletionRequest extends ChatCompletionRequestBase, ChatCompletionRequestImageConfig {
   stream?: boolean;
 }
 
 /**
  * Streaming chat completion request
  */
-export interface ChatCompletionStreamingRequest extends ChatCompletionRequestBase {
+export interface ChatCompletionStreamingRequest extends ChatCompletionRequestBase, ChatCompletionRequestImageConfig {
   stream: true;
 }
 
 /**
  * Non-streaming chat completion request
  */
-export interface ChatCompletionNonStreamingRequest extends ChatCompletionRequestBase {
+export interface ChatCompletionNonStreamingRequest extends ChatCompletionRequestBase, ChatCompletionRequestImageConfig {
   stream?: false;
 }
 
