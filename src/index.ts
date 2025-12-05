@@ -23,3 +23,6 @@ export { Chat } from './services/chat';
 
 // Export nano-banana service (for custom endpoints)
 export { NanoBanana } from './services/nano-banana';
+
+// Export wan service (for video generation)
+export { Wan } from './services/wan';

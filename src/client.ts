@@ -2,6 +2,7 @@ import { Chat } from './services/chat';
 import { NanoBanana } from './services/nano-banana';
 import { Tavily } from './services/tavily';
 import { UncensoredAI } from './services/uncensored-ai';
+import { Wan } from './services/wan';
 import type { EternalAIConfig } from './types';
 
 export class EternalAI {
@@ -9,6 +10,7 @@ export class EternalAI {
   public readonly nanoBanana: NanoBanana;
   public readonly tavily: Tavily;
   public readonly uncensoredAI: UncensoredAI;
+  public readonly wan: Wan;
   private readonly config: EternalAIConfig;
 
   constructor(config: EternalAIConfig) {
@@ -20,5 +22,6 @@ export class EternalAI {
     this.nanoBanana = new NanoBanana(this.config);
     this.tavily = new Tavily(this.config);
     this.uncensoredAI = new UncensoredAI(this.config);
+    this.wan = new Wan(this.config);
   }
 }

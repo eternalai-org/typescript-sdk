@@ -9,12 +9,14 @@ import type {
 import { NanoBanana } from './nano-banana';
 import { Tavily } from './tavily';
 import { UncensoredAI } from './uncensored-ai';
+import { Wan } from './wan';
 
 const NANO_BANANA_PREFIX = 'nano-banana/';
 const TAVILY_PREFIX = 'tavily/';
 const UNCENSORED_AI_PREFIX = 'uncensored-ai/';
+const WAN_PREFIX = 'wan/';
 
-type CustomProvider = 'nano-banana' | 'tavily' | 'uncensored-ai' | null;
+type CustomProvider = 'nano-banana' | 'tavily' | 'uncensored-ai' | 'wan' | null;
 
 /**
  * Chat service for sending messages and receiving responses
@@ -25,12 +27,14 @@ export class Chat {
   private readonly nanoBanana: NanoBanana;
   private readonly tavily: Tavily;
   private readonly uncensoredAI: UncensoredAI;
+  private readonly wan: Wan;
 
   constructor(config: EternalAIConfig) {
     this.config = config;
     this.nanoBanana = new NanoBanana(config);
     this.tavily = new Tavily(config);
     this.uncensoredAI = new UncensoredAI(config);
+    this.wan = new Wan(config);
   }
 
   /**
@@ -55,6 +59,12 @@ export class Chat {
       return {
         provider: 'uncensored-ai',
         modelName: model.slice(UNCENSORED_AI_PREFIX.length),
+      };
+    }
+    if (model.startsWith(WAN_PREFIX)) {
+      return {
+        provider: 'wan',
+        modelName: model.slice(WAN_PREFIX.length),
       };
     }
     return { provider: null, modelName: model };
@@ -124,6 +134,30 @@ export class Chat {
           message: {
             role: 'assistant',
             content: resultUrl,
+          },
+          finish_reason: 'stop',
+        }],
+      };
+    }
+
+    if (provider === 'wan') {
+      // Wan doesn't support streaming, always use non-streaming
+      // generate() automatically polls and returns WanResultResponse
+      const result = await this.wan.generate(request, modelName);
+
+      // Transform WanResultResponse to ChatCompletionResponse
+      const videoUrl = result.output?.results?.[0]?.url || '';
+
+      return {
+        id: result.request_id || `chatcmpl-wan-${Date.now()}`,
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: request.model,
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: videoUrl,
           },
           finish_reason: 'stop',
         }],

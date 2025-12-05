@@ -101,7 +101,7 @@ var NanoBanana = class {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let chunkId = `chatcmpl-${Date.now()}`;
+    const chunkId = `chatcmpl-${Date.now()}`;
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -286,9 +286,11 @@ var UncensoredAI = class {
   }
   /**
    * Generate or edit images/videos using Uncensored AI endpoint
+   * Automatically polls for results until completion
    * @param request - Chat completion request with optional image content and additional options
    * @param endpoint - The endpoint to use: 'uncensored-image' or 'uncensored-video'
-   * @returns Chat completion response
+   * @param pollingOptions - Polling options (optional, has smart defaults)
+   * @returns Final result response with generated URL
    * 
    * @example Text-to-Image
    * ```typescript
@@ -297,7 +299,12 @@ var UncensoredAI = class {
    *   model: 'uncensored-ai/uncensored-image',
    *   type: 'new',
    *   lora_config: { 'style-lora': 1 }
-   * }, 'uncensored-image');
+   * }, 'uncensored-image', {
+   *   interval: 3000,
+   *   maxAttempts: 60,
+   *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+   * });
+   * // Result URL: result.result?.url
    * ```
    * 
    * @example Image-to-Image
@@ -332,10 +339,13 @@ var UncensoredAI = class {
    *   duration: 5,
    *   audio: true,
    *   video_config: { is_fast_video: false, loras: ['flip', 'nsfw'] }
-   * }, 'uncensored-video');
+   * }, 'uncensored-video', {
+   *   interval: 5000, // Video takes longer
+   *   maxAttempts: 120
+   * });
    * ```
    */
-  async generate(request, endpoint = "uncensored-image") {
+  async generate(request, endpoint = "uncensored-image", pollingOptions = {}) {
     const url = `${this.baseUrl}/${endpoint}`;
     const headers = {
       "Content-Type": "application/json",
@@ -345,9 +355,7 @@ var UncensoredAI = class {
     const body = {
       messages: request.messages
     };
-    if (request.type) {
-      body.type = request.type;
-    }
+    body.type = request.type !== void 0 ? request.type : request.messages.find((message) => message.content.find((content) => content.type === "image_url")) ? "edit" : "new";
     if (request.lora_config) {
       body.lora_config = request.lora_config;
     }
@@ -357,15 +365,10 @@ var UncensoredAI = class {
     if (request.video_config) {
       body.video_config = typeof request.video_config === "string" ? request.video_config : JSON.stringify(request.video_config);
     }
-    if (request.is_magic_prompt !== void 0) {
-      body.is_magic_prompt = request.is_magic_prompt;
-    }
-    if (request.duration !== void 0) {
-      body.duration = request.duration;
-    }
-    if (request.audio !== void 0) {
-      body.audio = request.audio;
-    }
+    body.is_magic_prompt = request.is_magic_prompt !== void 0 ? request.is_magic_prompt : true;
+    body.duration = request.duration !== void 0 ? request.duration : 5;
+    body.audio = request.audio !== void 0 ? request.audio : true;
+    console.log("body", body);
     const response = await fetch(url, {
       method: "POST",
       headers,
@@ -377,43 +380,92 @@ var UncensoredAI = class {
       throw new Error(`UncensoredAI request failed with status ${response.status}: ${errorText}`);
     }
     const uncensoredResponse = await response.json();
-    return this.transformToOpenAIFormat(uncensoredResponse, `uncensored-ai/${endpoint}`);
+    const requestId = uncensoredResponse.request_id;
+    if (!requestId) {
+      throw new Error("No request_id in generate response");
+    }
+    const finalPollingOptions = {
+      interval: pollingOptions.interval || (endpoint === "uncensored-video" ? 5e3 : 3e3),
+      maxAttempts: pollingOptions.maxAttempts || (endpoint === "uncensored-video" ? 120 : 60),
+      onStatusUpdate: pollingOptions.onStatusUpdate
+    };
+    return this.pollResult(requestId, endpoint, finalPollingOptions);
   }
   /**
-   * Transform Uncensored AI response to OpenAI format
+   * Get result by request_id (polling endpoint)
+   * @param requestId - The request ID returned from generate()
+   * @param endpoint - The endpoint: 'uncensored-image' or 'uncensored-video'
+   * @returns Result response with status and content
+   * 
+   * @example
+   * ```typescript
+   * const result = await uncensoredAI.getResult('req_123456', 'uncensored-image');
+   * if (result.status === 'completed') {
+   *   console.log('Image URL:', result.result?.url);
+   * }
+   * ```
    */
-  transformToOpenAIFormat(response, model) {
-    if (response.choices && response.choices.length > 0) {
-      return {
-        id: response.id || `chatcmpl-uncensored-${Date.now()}`,
-        object: response.object || "chat.completion",
-        created: response.created || Math.floor(Date.now() / 1e3),
-        model,
-        choices: response.choices.map((choice) => ({
-          index: choice.index,
-          message: {
-            role: choice.message.role,
-            content: typeof choice.message.content === "string" ? choice.message.content : JSON.stringify(choice.message.content)
-          },
-          finish_reason: choice.finish_reason
-        })),
-        usage: response.usage
-      };
-    }
-    return {
-      id: `chatcmpl-uncensored-${Date.now()}`,
-      object: "chat.completion",
-      created: Math.floor(Date.now() / 1e3),
-      model,
-      choices: [{
-        index: 0,
-        message: {
-          role: "assistant",
-          content: JSON.stringify(response)
-        },
-        finish_reason: "stop"
-      }]
+  async getResult(requestId, endpoint = "uncensored-image") {
+    const url = `${this.baseUrl}/result/${endpoint}?request_id=${encodeURIComponent(requestId)}`;
+    const headers = {
+      "Content-Type": "application/json",
+      "accept": "application/json",
+      "x-api-key": this.config.apiKey
     };
+    const response = await fetch(url, {
+      method: "GET",
+      headers,
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`UncensoredAI getResult failed with status ${response.status}: ${errorText}`);
+    }
+    return await response.json();
+  }
+  /**
+   * Poll for result until completion or timeout
+   * @param requestId - The request ID returned from generate()
+   * @param endpoint - The endpoint: 'uncensored-image' or 'uncensored-video'
+   * @param options - Polling options (interval, maxAttempts, onStatusUpdate callback)
+   * @returns Final result response
+   * @throws Error if polling times out or request fails
+   * 
+   * @example
+   * ```typescript
+   * const generateResponse = await uncensoredAI.generate({ ... }, 'uncensored-image');
+   * const requestId = JSON.parse(generateResponse.choices[0].message.content).request_id;
+   * 
+   * const finalResult = await uncensoredAI.pollResult(requestId, 'uncensored-image', {
+   *   interval: 2000,
+   *   maxAttempts: 30,
+   *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] Status: ${status}`)
+   * });
+   * ```
+   */
+  async pollResult(requestId, endpoint = "uncensored-image", options = {}) {
+    const {
+      interval = 3e3,
+      maxAttempts = 60,
+      onStatusUpdate
+    } = options;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const result = await this.getResult(requestId, endpoint);
+      if (onStatusUpdate) {
+        console.log("requestId", requestId);
+        onStatusUpdate(result.status, attempt);
+      }
+      if (result.status === "success") {
+        return result;
+      }
+      if (result.status === "failed") {
+        throw new Error(`UncensoredAI request failed: ${result.status}`);
+      }
+      if (attempt < maxAttempts) {
+        await this.sleep(interval);
+      }
+    }
+    throw new Error(`UncensoredAI polling timed out after ${maxAttempts} attempts`);
   }
   /**
    * Create abort signal with timeout
@@ -426,12 +478,204 @@ var UncensoredAI = class {
     }
     return void 0;
   }
+  /**
+   * Sleep helper for polling
+   */
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+};
+
+// src/services/wan.ts
+var Wan = class {
+  constructor(config) {
+    this.baseUrl = "https://open.eternalai.org/wan/api/v1/services/aigc/video-generation";
+    this.config = config;
+  }
+  /**
+   * Generate video from image using Wan endpoint
+   * Automatically polls for results until completion
+   * @param request - Chat completion request with prompt and optional image URL
+   * @param model - The Wan model to use (default: wan2.5-i2v-preview)
+   * @param pollingOptions - Polling options (optional, has smart defaults)
+   * @returns Final result response with generated video URL
+   * 
+   * @example
+   * ```typescript
+   * const result = await wan.generate({
+   *   messages: [{ 
+   *     role: 'user', 
+   *     content: [
+   *       { type: 'text', text: 'A dynamic graffiti art character...' },
+   *       { type: 'image_url', image_url: { url: 'https://...' } }
+   *     ] 
+   *   }],
+   *   model: 'wan/wan2.5-i2v-preview',
+   *   resolution: '480P',
+   *   prompt_extend: true,
+   *   duration: 10,
+   *   audio: true
+   * }, 'wan2.5-i2v-preview', {
+   *   interval: 5000,
+   *   maxAttempts: 120,
+   *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+   * });
+   * ```
+   */
+  async generate(request, model = "wan2.5-i2v-preview", pollingOptions = {}) {
+    const url = `${this.baseUrl}/video-synthesis`;
+    const headers = {
+      "Content-Type": "application/json",
+      "X-DashScope-Async": "enable",
+      "Authorization": `Bearer ${this.config.apiKey}`
+    };
+    let prompt = "";
+    let imgUrl;
+    for (const message of request.messages) {
+      if (typeof message.content === "string") {
+        prompt = message.content;
+      } else if (Array.isArray(message.content)) {
+        for (const part of message.content) {
+          if (part.type === "text") {
+            prompt = part.text || "";
+          } else if (part.type === "image_url" && part.image_url) {
+            imgUrl = part.image_url.url;
+          }
+        }
+      }
+    }
+    const body = {
+      model,
+      input: {
+        prompt,
+        ...imgUrl && { img_url: imgUrl }
+      },
+      parameters: {
+        resolution: request.resolution || "480P",
+        prompt_extend: request.prompt_extend !== void 0 ? request.prompt_extend : true,
+        duration: request.duration !== void 0 ? request.duration : 10,
+        audio: request.audio !== void 0 ? request.audio : true
+      }
+    };
+    console.log("Wan request body:", JSON.stringify(body, null, 2));
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Wan request failed with status ${response.status}: ${errorText}`);
+    }
+    const taskResponse = await response.json();
+    const taskId = taskResponse.output?.task_id;
+    if (!taskId) {
+      throw new Error("No task_id in generate response");
+    }
+    const finalPollingOptions = {
+      interval: pollingOptions.interval || 5e3,
+      maxAttempts: pollingOptions.maxAttempts || 120,
+      onStatusUpdate: pollingOptions.onStatusUpdate
+    };
+    return this.pollResult(taskId, finalPollingOptions);
+  }
+  /**
+   * Get result by task_id (polling endpoint)
+   * @param taskId - The task ID returned from generate()
+   * @returns Result response with status and video URL
+   * 
+   * @example
+   * ```typescript
+   * const result = await wan.getResult('task_123456');
+   * if (result.output?.task_status === 'SUCCEEDED') {
+   *   console.log('Video URL:', result.output.results?.[0]?.url);
+   * }
+   * ```
+   */
+  async getResult(taskId) {
+    const url = `${this.baseUrl}/video-synthesis/${encodeURIComponent(taskId)}`;
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${this.config.apiKey}`
+    };
+    const response = await fetch(url, {
+      method: "GET",
+      headers,
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Wan getResult failed with status ${response.status}: ${errorText}`);
+    }
+    return await response.json();
+  }
+  /**
+   * Poll for result until completion or timeout
+   * @param taskId - The task ID returned from generate()
+   * @param options - Polling options (interval, maxAttempts, onStatusUpdate callback)
+   * @returns Final result response
+   * @throws Error if polling times out or request fails
+   * 
+   * @example
+   * ```typescript
+   * const finalResult = await wan.pollResult('task_123456', {
+   *   interval: 5000,
+   *   maxAttempts: 120,
+   *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] Status: ${status}`)
+   * });
+   * ```
+   */
+  async pollResult(taskId, options = {}) {
+    const {
+      interval = 5e3,
+      maxAttempts = 120,
+      onStatusUpdate
+    } = options;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const result = await this.getResult(taskId);
+      const status = result.output?.task_status || "UNKNOWN";
+      if (onStatusUpdate) {
+        console.log("taskId", taskId);
+        onStatusUpdate(status, attempt);
+      }
+      if (status === "SUCCEEDED") {
+        return result;
+      }
+      if (status === "FAILED") {
+        const message = result.output?.message || "Unknown error";
+        throw new Error(`Wan video generation failed: ${message}`);
+      }
+      if (attempt < maxAttempts) {
+        await this.sleep(interval);
+      }
+    }
+    throw new Error(`Wan polling timed out after ${maxAttempts} attempts`);
+  }
+  /**
+   * Create abort signal with timeout
+   */
+  createAbortSignal() {
+    if (this.config.timeout) {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), this.config.timeout);
+      return controller.signal;
+    }
+    return void 0;
+  }
+  /**
+   * Sleep helper for polling
+   */
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
 };
 
 // src/services/chat.ts
 var NANO_BANANA_PREFIX = "nano-banana/";
 var TAVILY_PREFIX = "tavily/";
 var UNCENSORED_AI_PREFIX = "uncensored-ai/";
+var WAN_PREFIX = "wan/";
 var Chat = class {
   constructor(config) {
     this.baseUrl = "https://open.eternalai.org/api/v1";
@@ -439,6 +683,7 @@ var Chat = class {
     this.nanoBanana = new NanoBanana(config);
     this.tavily = new Tavily(config);
     this.uncensoredAI = new UncensoredAI(config);
+    this.wan = new Wan(config);
   }
   /**
    * Check if model uses a custom provider prefix and extract the actual model/endpoint name
@@ -464,6 +709,12 @@ var Chat = class {
         modelName: model.slice(UNCENSORED_AI_PREFIX.length)
       };
     }
+    if (model.startsWith(WAN_PREFIX)) {
+      return {
+        provider: "wan",
+        modelName: model.slice(WAN_PREFIX.length)
+      };
+    }
     return { provider: null, modelName: model };
   }
   /**
@@ -482,7 +733,40 @@ var Chat = class {
       return this.tavily.search(request, modelName);
     }
     if (provider === "uncensored-ai") {
-      return this.uncensoredAI.generate(request, modelName);
+      const result = await this.uncensoredAI.generate(request, modelName);
+      const resultUrl = result.result_url;
+      return {
+        id: result.request_id || `chatcmpl-uncensored-${Date.now()}`,
+        object: "chat.completion",
+        created: Math.floor(Date.now() / 1e3),
+        model: request.model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: resultUrl
+          },
+          finish_reason: "stop"
+        }]
+      };
+    }
+    if (provider === "wan") {
+      const result = await this.wan.generate(request, modelName);
+      const videoUrl = result.output?.results?.[0]?.url || "";
+      return {
+        id: result.request_id || `chatcmpl-wan-${Date.now()}`,
+        object: "chat.completion",
+        created: Math.floor(Date.now() / 1e3),
+        model: request.model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: videoUrl
+          },
+          finish_reason: "stop"
+        }]
+      };
     }
     const url = `${this.baseUrl}/chat/completions`;
     const headers = {
@@ -569,11 +853,13 @@ var EternalAI = class {
     this.nanoBanana = new NanoBanana(this.config);
     this.tavily = new Tavily(this.config);
     this.uncensoredAI = new UncensoredAI(this.config);
+    this.wan = new Wan(this.config);
   }
 };
 
 exports.Chat = Chat;
 exports.EternalAI = EternalAI;
 exports.NanoBanana = NanoBanana;
+exports.Wan = Wan;
 //# sourceMappingURL=index.cjs.map
 //# sourceMappingURL=index.cjs.map

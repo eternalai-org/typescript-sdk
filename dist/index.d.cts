@@ -118,6 +118,7 @@ declare class Chat {
     private readonly nanoBanana;
     private readonly tavily;
     private readonly uncensoredAI;
+    private readonly wan;
     constructor(config: EternalAIConfig);
     /**
      * Check if model uses a custom provider prefix and extract the actual model/endpoint name
@@ -244,6 +245,25 @@ interface UncensoredAIRequestOptions {
     audio?: boolean;
 }
 /**
+ * Result response from polling endpoint
+ */
+interface UncensoredResultResponse {
+    request_id: string;
+    status: 'pending' | 'processing' | 'success' | 'failed' | 'error';
+    result_url: string;
+}
+/**
+ * Options for polling
+ */
+interface PollingOptions$1 {
+    /** Polling interval in milliseconds (default: 3000) */
+    interval?: number;
+    /** Maximum polling attempts (default: 60) */
+    maxAttempts?: number;
+    /** Callback for status updates */
+    onStatusUpdate?: (status: string, attempt: number) => void;
+}
+/**
  * UncensoredAI service for uncensored image/video generation and editing
  *
  * Supported endpoints:
@@ -256,9 +276,11 @@ declare class UncensoredAI {
     constructor(config: EternalAIConfig);
     /**
      * Generate or edit images/videos using Uncensored AI endpoint
+     * Automatically polls for results until completion
      * @param request - Chat completion request with optional image content and additional options
      * @param endpoint - The endpoint to use: 'uncensored-image' or 'uncensored-video'
-     * @returns Chat completion response
+     * @param pollingOptions - Polling options (optional, has smart defaults)
+     * @returns Final result response with generated URL
      *
      * @example Text-to-Image
      * ```typescript
@@ -267,7 +289,12 @@ declare class UncensoredAI {
      *   model: 'uncensored-ai/uncensored-image',
      *   type: 'new',
      *   lora_config: { 'style-lora': 1 }
-     * }, 'uncensored-image');
+     * }, 'uncensored-image', {
+     *   interval: 3000,
+     *   maxAttempts: 60,
+     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+     * });
+     * // Result URL: result.result?.url
      * ```
      *
      * @example Image-to-Image
@@ -302,18 +329,183 @@ declare class UncensoredAI {
      *   duration: 5,
      *   audio: true,
      *   video_config: { is_fast_video: false, loras: ['flip', 'nsfw'] }
-     * }, 'uncensored-video');
+     * }, 'uncensored-video', {
+     *   interval: 5000, // Video takes longer
+     *   maxAttempts: 120
+     * });
      * ```
      */
-    generate(request: ChatCompletionRequest & UncensoredAIRequestOptions, endpoint?: string): Promise<ChatCompletionResponse>;
+    generate(request: ChatCompletionRequest & UncensoredAIRequestOptions, endpoint?: string, pollingOptions?: PollingOptions$1): Promise<UncensoredResultResponse>;
     /**
-     * Transform Uncensored AI response to OpenAI format
+     * Get result by request_id (polling endpoint)
+     * @param requestId - The request ID returned from generate()
+     * @param endpoint - The endpoint: 'uncensored-image' or 'uncensored-video'
+     * @returns Result response with status and content
+     *
+     * @example
+     * ```typescript
+     * const result = await uncensoredAI.getResult('req_123456', 'uncensored-image');
+     * if (result.status === 'completed') {
+     *   console.log('Image URL:', result.result?.url);
+     * }
+     * ```
      */
-    private transformToOpenAIFormat;
+    getResult(requestId: string, endpoint?: string): Promise<UncensoredResultResponse>;
+    /**
+     * Poll for result until completion or timeout
+     * @param requestId - The request ID returned from generate()
+     * @param endpoint - The endpoint: 'uncensored-image' or 'uncensored-video'
+     * @param options - Polling options (interval, maxAttempts, onStatusUpdate callback)
+     * @returns Final result response
+     * @throws Error if polling times out or request fails
+     *
+     * @example
+     * ```typescript
+     * const generateResponse = await uncensoredAI.generate({ ... }, 'uncensored-image');
+     * const requestId = JSON.parse(generateResponse.choices[0].message.content).request_id;
+     *
+     * const finalResult = await uncensoredAI.pollResult(requestId, 'uncensored-image', {
+     *   interval: 2000,
+     *   maxAttempts: 30,
+     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] Status: ${status}`)
+     * });
+     * ```
+     */
+    pollResult(requestId: string, endpoint?: string, options?: PollingOptions$1): Promise<UncensoredResultResponse>;
     /**
      * Create abort signal with timeout
      */
     private createAbortSignal;
+    /**
+     * Sleep helper for polling
+     */
+    private sleep;
+}
+
+/**
+ * Wan video generation request options
+ */
+interface WanRequestOptions {
+    /** Video resolution (e.g., "480P", "720P", "1080P") */
+    resolution?: string;
+    /** Enable prompt extension for better results */
+    prompt_extend?: boolean;
+    /** Video duration in seconds */
+    duration?: number;
+    /** Enable audio in video */
+    audio?: boolean;
+}
+/**
+ * Wan task result response
+ */
+interface WanResultResponse {
+    output?: {
+        task_id: string;
+        task_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+        task_metrics?: {
+            TOTAL: number;
+            SUCCEEDED: number;
+            FAILED: number;
+        };
+        results?: Array<{
+            url: string;
+        }>;
+        code?: string;
+        message?: string;
+    };
+    request_id?: string;
+}
+/**
+ * Options for polling
+ */
+interface PollingOptions {
+    /** Polling interval in milliseconds (default: 5000) */
+    interval?: number;
+    /** Maximum polling attempts (default: 120) */
+    maxAttempts?: number;
+    /** Callback for status updates */
+    onStatusUpdate?: (status: string, attempt: number) => void;
+}
+/**
+ * Wan service for video generation from images
+ *
+ * Supported models:
+ * - wan2.5-i2v-preview: Image-to-video generation
+ */
+declare class Wan {
+    private readonly config;
+    private readonly baseUrl;
+    constructor(config: EternalAIConfig);
+    /**
+     * Generate video from image using Wan endpoint
+     * Automatically polls for results until completion
+     * @param request - Chat completion request with prompt and optional image URL
+     * @param model - The Wan model to use (default: wan2.5-i2v-preview)
+     * @param pollingOptions - Polling options (optional, has smart defaults)
+     * @returns Final result response with generated video URL
+     *
+     * @example
+     * ```typescript
+     * const result = await wan.generate({
+     *   messages: [{
+     *     role: 'user',
+     *     content: [
+     *       { type: 'text', text: 'A dynamic graffiti art character...' },
+     *       { type: 'image_url', image_url: { url: 'https://...' } }
+     *     ]
+     *   }],
+     *   model: 'wan/wan2.5-i2v-preview',
+     *   resolution: '480P',
+     *   prompt_extend: true,
+     *   duration: 10,
+     *   audio: true
+     * }, 'wan2.5-i2v-preview', {
+     *   interval: 5000,
+     *   maxAttempts: 120,
+     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+     * });
+     * ```
+     */
+    generate(request: ChatCompletionRequest & WanRequestOptions, model?: string, pollingOptions?: PollingOptions): Promise<WanResultResponse>;
+    /**
+     * Get result by task_id (polling endpoint)
+     * @param taskId - The task ID returned from generate()
+     * @returns Result response with status and video URL
+     *
+     * @example
+     * ```typescript
+     * const result = await wan.getResult('task_123456');
+     * if (result.output?.task_status === 'SUCCEEDED') {
+     *   console.log('Video URL:', result.output.results?.[0]?.url);
+     * }
+     * ```
+     */
+    getResult(taskId: string): Promise<WanResultResponse>;
+    /**
+     * Poll for result until completion or timeout
+     * @param taskId - The task ID returned from generate()
+     * @param options - Polling options (interval, maxAttempts, onStatusUpdate callback)
+     * @returns Final result response
+     * @throws Error if polling times out or request fails
+     *
+     * @example
+     * ```typescript
+     * const finalResult = await wan.pollResult('task_123456', {
+     *   interval: 5000,
+     *   maxAttempts: 120,
+     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] Status: ${status}`)
+     * });
+     * ```
+     */
+    pollResult(taskId: string, options?: PollingOptions): Promise<WanResultResponse>;
+    /**
+     * Create abort signal with timeout
+     */
+    private createAbortSignal;
+    /**
+     * Sleep helper for polling
+     */
+    private sleep;
 }
 
 declare class EternalAI {
@@ -321,8 +513,9 @@ declare class EternalAI {
     readonly nanoBanana: NanoBanana;
     readonly tavily: Tavily;
     readonly uncensoredAI: UncensoredAI;
+    readonly wan: Wan;
     private readonly config;
     constructor(config: EternalAIConfig);
 }
 
-export { Chat, type ChatCompletionChoice, type ChatCompletionChunk, type ChatCompletionDelta, type ChatCompletionMessage, type ChatCompletionNonStreamingChoice, type ChatCompletionNonStreamingRequest, type ChatCompletionRequest, type ChatCompletionRequestBase, type ChatCompletionResponse, type ChatCompletionStreamingRequest, type ChatMessage, EternalAI, type EternalAIConfig, type MessageRole, NanoBanana };
+export { Chat, type ChatCompletionChoice, type ChatCompletionChunk, type ChatCompletionDelta, type ChatCompletionMessage, type ChatCompletionNonStreamingChoice, type ChatCompletionNonStreamingRequest, type ChatCompletionRequest, type ChatCompletionRequestBase, type ChatCompletionResponse, type ChatCompletionStreamingRequest, type ChatMessage, EternalAI, type EternalAIConfig, type MessageRole, NanoBanana, Wan };

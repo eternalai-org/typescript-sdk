@@ -10,25 +10,74 @@ Official TypeScript SDK for **EternalAI** - The next-generation API platform for
 
 ## Quick Start
 
+### Basic Chat (Streaming)
+
 ```typescript
 import { EternalAI } from '@eternalai-org/sdk';
 
 const eai = new EternalAI({ apiKey: 'your-api-key' });
 
+// Standard chat with streaming
 const result = await eai.chat.send({
-  messages: [
-    {
-      role: 'user',
-      content: 'Hello, how are you?',
-    },
-  ],
+  messages: [{ role: 'user', content: 'Hello, how are you?' }],
   model: 'openai/gpt-5.1',
-  stream: true, // optional
+  stream: true,
 });
 
 for await (const chunk of result) {
   console.log(chunk.choices[0].delta.content);
 }
+```
+
+### Image Generation
+
+```typescript
+// Uncensored AI - Image generation
+const imageResult = await eai.chat.send({
+  messages: [{
+    role: 'user',
+    content: [{ type: 'text', text: 'A beautiful sunset over the ocean' }]
+  }],
+  model: 'uncensored-ai/uncensored-image',
+  type: 'new', // 'new' for text-to-image, 'edit' for image-to-image
+  lora_config: { 'style-lora': 1 }, // Optional LoRA configuration
+});
+
+console.log('Image URL:', imageResult.choices[0].message.content);
+```
+
+### Video Generation
+
+```typescript
+// Wan - Image-to-video generation
+const videoResult = await eai.chat.send({
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'A dynamic animation of a character coming to life' },
+      { type: 'image_url', image_url: { url: 'https://example.com/image.png' } }
+    ]
+  }],
+  model: 'wan/wan2.5-i2v-preview',
+  resolution: '480P', // '480P', '720P', '1080P'
+  prompt_extend: true,
+  duration: 10, // seconds
+  audio: true,
+});
+
+console.log('Video URL:', videoResult.choices[0].message.content);
+```
+
+### AI-Powered Search
+
+```typescript
+// Tavily - Search with sources
+const searchResult = await eai.chat.send({
+  messages: [{ role: 'user', content: 'Latest news about AI in 2024' }],
+  model: 'tavily/search',
+});
+
+console.log('Search results:', searchResult.choices[0].message.content);
 ```
 
 ### Image Generation Example
@@ -181,6 +230,94 @@ console.log('Generated video:', videoUrl);
 - `uncensoredAI.generate()` provides more control over polling options and returns `UncensoredResultResponse` with `result_url` directly
 - Both methods automatically poll for results until completion
 
+#### Wan - Image-to-Video Generation
+
+Generate videos from images using the Wan service. You can use `chat.send()` (simplified) or `wan.generate()` (with advanced options):
+
+**Option 1: Using `chat.send()` (Simplified)**
+
+```typescript
+// Image-to-Video Generation via chat.send()
+const videoResult = await eai.chat.send({
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'A scene of urban fantasy art. A dynamic graffiti art character coming to life...',
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: 'https://example.com/image.png',
+          },
+        },
+      ],
+    },
+  ],
+  model: 'wan/wan2.5-i2v-preview',
+  resolution: '480P', // '480P', '720P', '1080P'
+  prompt_extend: true,
+  duration: 10, // seconds
+  audio: true,
+  stream: false, // Wan doesn't support streaming
+});
+
+// Video URL is in the response content
+const videoUrl = videoResult.choices[0].message.content;
+console.log('Generated video:', videoUrl);
+```
+
+**Option 2: Using `wan.generate()` (Advanced Options with Polling Callbacks)**
+
+```typescript
+// Image-to-Video Generation with polling callbacks
+const videoResult = await eai.wan.generate(
+  {
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'A dynamic graffiti art character coming to life...',
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'https://example.com/image.png',
+            },
+          },
+        ],
+      },
+    ],
+    model: 'wan/wan2.5-i2v-preview',
+    resolution: '480P',
+    prompt_extend: true,
+    duration: 10,
+    audio: true,
+  },
+  'wan2.5-i2v-preview',
+  {
+    interval: 5000, // Poll every 5 seconds
+    maxAttempts: 120, // Maximum 120 attempts (10 minutes)
+    onStatusUpdate: (status, attempt) => {
+      console.log(`[${attempt}] Status: ${status}`);
+    },
+  }
+);
+
+const videoUrl = videoResult.output?.results?.[0]?.url;
+console.log('Generated video:', videoUrl);
+```
+
+**Note:** 
+- `chat.send()` with `wan/` prefix automatically polls and returns a `ChatCompletionResponse` with the URL in `choices[0].message.content`
+- `wan.generate()` provides more control over polling options and returns `WanResultResponse` with video URL in `output.results[0].url`
+- Both methods automatically poll for results until completion
+- Video generation typically takes longer than image generation (5-10 minutes)
+
 ## Installation
 
 Install from npm:
@@ -246,10 +383,11 @@ Access multiple AI providers through one unified API:
 - **Qwen** (`qwen/*`) - Alibaba's Qwen models
 - **Tavily** (`tavily/*`) - AI-powered search engine
 - **Uncensored AI** (`uncensored-ai/*`) - Image/video generation (`uncensored-image`, `uncensored-video`)
+- **Wan** (`wan/*`) - Image-to-video generation (`wan2.5-i2v-preview`)
 - **Nano Banana** (`nano-banana/*`) - Custom Gemini endpoint with image generation
-- **And more** - Wan, and growing
+- **And more** - Growing list of providers
 
-**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `uncensored-ai/uncensored-image`, `uncensored-ai/uncensored-video`
+**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `uncensored-ai/uncensored-image`, `wan/wan2.5-i2v-preview`
 
 ## API Reference
 
@@ -286,13 +424,14 @@ Send a chat completion request. Automatically routes to the appropriate provider
 - `nano-banana/*` → Nano Banana service (supports streaming)
 - `tavily/*` → Tavily search service (non-streaming only)
 - `uncensored-ai/*` → Uncensored AI service (non-streaming only, auto-polls)
+- `wan/*` → Wan video generation service (non-streaming only, auto-polls)
 
 **Parameters:**
 
 - `request.messages` (ChatMessage[], required) - Array of chat messages
-- `request.model` (string, required) - Model name with provider prefix (e.g., `"openai/gpt-5.1"`, `"nano-banana/gemini-2.5-flash-image"`, `"tavily/search"`, `"uncensored-ai/uncensored-image"`)
+- `request.model` (string, required) - Model name with provider prefix (e.g., `"openai/gpt-5.1"`, `"nano-banana/gemini-2.5-flash-image"`, `"tavily/search"`, `"uncensored-ai/uncensored-image"`, `"wan/wan2.5-i2v-preview"`)
 - `request.stream` (boolean, optional) - Enable streaming responses (default: `false`)
-  - Note: `tavily/*` and `uncensored-ai/*` don't support streaming
+  - Note: `tavily/*`, `uncensored-ai/*`, and `wan/*` don't support streaming
 - `request.image_config` (ImageConfigOptions, optional) - Image generation configuration for models that support image generation
   - `image_config.aspect_ratio` (string, optional) - Aspect ratio for generated images (e.g., `"16:9"`, `"1:1"`, `"9:16"`)
 
@@ -373,6 +512,63 @@ const imageUrl = result.result_url;
 ```
 
 **Note:** The method automatically polls for results with smart defaults (3s interval, 60 attempts for images; 5s interval, 120 attempts for videos).
+
+#### `wan.generate(request, model, pollingOptions)`
+
+Generate videos from images using Wan with advanced options. Automatically polls for results until completion.
+
+**Note:** For simpler usage, you can also use `chat.send()` with `wan/wan2.5-i2v-preview` model name.
+
+**Parameters:**
+
+- `request.messages` (ChatMessage[], required) - Array of chat messages with content parts (text + image_url)
+- `request.model` (string, required) - Model name: `"wan/wan2.5-i2v-preview"`
+- `request.resolution` (string, optional) - Video resolution: `"480P"`, `"720P"`, or `"1080P"` (default: `"480P"`)
+- `request.prompt_extend` (boolean, optional) - Enable prompt extension for better results (default: `true`)
+- `request.duration` (number, optional) - Video duration in seconds (default: `10`)
+- `request.audio` (boolean, optional) - Enable audio in video (default: `true`)
+- `model` (string, optional) - Model name: `'wan2.5-i2v-preview'` (default: `'wan2.5-i2v-preview'`)
+- `pollingOptions` (PollingOptions, optional) - Polling configuration
+  - `interval` (number, optional) - Polling interval in milliseconds (default: `5000`)
+  - `maxAttempts` (number, optional) - Maximum polling attempts (default: `120`)
+  - `onStatusUpdate` (function, optional) - Callback for status updates: `(status: string, attempt: number) => void`
+
+**Returns:**
+
+- `WanResultResponse` - Response with `output.results[0].url` containing the generated video URL
+
+**Example:**
+
+```typescript
+const result = await eai.wan.generate(
+  {
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: 'A dynamic animation...' },
+        { type: 'image_url', image_url: { url: 'https://...' } }
+      ]
+    }],
+    model: 'wan/wan2.5-i2v-preview',
+    resolution: '480P',
+    prompt_extend: true,
+    duration: 10,
+    audio: true
+  },
+  'wan2.5-i2v-preview',
+  {
+    interval: 5000,
+    maxAttempts: 120,
+    onStatusUpdate: (status, attempt) => {
+      console.log(`[${attempt}] ${status}`);
+    }
+  }
+);
+
+const videoUrl = result.output?.results?.[0]?.url;
+```
+
+**Note:** The method automatically polls for results with smart defaults (5s interval, 120 attempts). Video generation typically takes 5-10 minutes.
 
 ## TypeScript Support
 
