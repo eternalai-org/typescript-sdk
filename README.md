@@ -115,10 +115,11 @@ Access multiple AI providers through one unified API:
 - **Claude** (`anthropic/*`) - Anthropic's Claude models
 - **Grok** (`xai/*`) - xAI's Grok models
 - **Gemini** (`gemini/*`) - Google's Gemini models
+- **Qwen** (`qwen/*`) - Alibaba's Qwen models
 - **Nano Banana** (`nano-banana/*`) - Custom Gemini endpoint with image generation
-- **And more** - Uncensored AI, Tavily, Qwen, Wan, and growing
+- **And more** - Uncensored AI, Tavily, Wan, and growing
 
-**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `anthropic/claude-opus-4-5`, `nano-banana/gemini-2.5-flash-image`
+**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `anthropic/claude-opus-4-5`, `qwen/qwen-flash-2025-07-28`
 
 ## API Reference
 
