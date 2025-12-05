@@ -174,7 +174,7 @@ export class NanoBanana {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        let chunkId = `chatcmpl-${Date.now()}`;
+        const chunkId = `chatcmpl-${Date.now()}`;
 
         try {
             while (true) {

@@ -117,10 +117,11 @@ declare class Chat {
     private readonly baseUrl;
     private readonly nanoBanana;
     private readonly tavily;
+    private readonly uncensoredAI;
     constructor(config: EternalAIConfig);
     /**
      * Check if model uses a custom provider prefix and extract the actual model/endpoint name
-     * @param model - Model name that may include custom prefix like "nano-banana/" or "tavily/"
+     * @param model - Model name that may include custom prefix like "nano-banana/", "tavily/", or "uncensored-ai/"
      * @returns Object with provider type and extracted model name
      */
     private parseModelName;
@@ -223,10 +224,103 @@ declare class Tavily {
     private createAbortSignal;
 }
 
+/**
+ * Uncensored AI request options (extended from ChatCompletionRequest)
+ */
+interface UncensoredAIRequestOptions {
+    /** Type of generation: 'new' for text-to-image, 'edit' for image-to-image/video */
+    type?: 'new' | 'edit';
+    /** LoRA configuration for image generation (object format) */
+    lora_config?: Record<string, number>;
+    /** Image configuration (can be string or object) */
+    image_config?: string | Record<string, any>;
+    /** Video configuration (can be string or object) */
+    video_config?: string | Record<string, any>;
+    /** Enable magic prompt for video */
+    is_magic_prompt?: boolean;
+    /** Video duration in seconds */
+    duration?: number;
+    /** Enable audio in video */
+    audio?: boolean;
+}
+/**
+ * UncensoredAI service for uncensored image/video generation and editing
+ *
+ * Supported endpoints:
+ * - uncensored-image: For image generation (text-to-image, image-to-image)
+ * - uncensored-video: For video generation from images
+ */
+declare class UncensoredAI {
+    private readonly config;
+    private readonly baseUrl;
+    constructor(config: EternalAIConfig);
+    /**
+     * Generate or edit images/videos using Uncensored AI endpoint
+     * @param request - Chat completion request with optional image content and additional options
+     * @param endpoint - The endpoint to use: 'uncensored-image' or 'uncensored-video'
+     * @returns Chat completion response
+     *
+     * @example Text-to-Image
+     * ```typescript
+     * const result = await uncensoredAI.generate({
+     *   messages: [{ role: 'user', content: [{ type: 'text', text: 'A beautiful sunset' }] }],
+     *   model: 'uncensored-ai/uncensored-image',
+     *   type: 'new',
+     *   lora_config: { 'style-lora': 1 }
+     * }, 'uncensored-image');
+     * ```
+     *
+     * @example Image-to-Image
+     * ```typescript
+     * const result = await uncensoredAI.generate({
+     *   messages: [{
+     *     role: 'user',
+     *     content: [
+     *       { type: 'text', text: 'Edit this image...' },
+     *       { type: 'image_url', image_url: { url: '...', filename: 'image.png' } }
+     *     ]
+     *   }],
+     *   model: 'uncensored-ai/uncensored-image',
+     *   type: 'edit',
+     *   image_config: { loras: ['skin', 'lightning'] }
+     * }, 'uncensored-image');
+     * ```
+     *
+     * @example Video Generation
+     * ```typescript
+     * const result = await uncensoredAI.generate({
+     *   messages: [{
+     *     role: 'user',
+     *     content: [
+     *       { type: 'text', text: 'Animate this...' },
+     *       { type: 'image_url', image_url: { url: '...', filename: 'image.jpg' } }
+     *     ]
+     *   }],
+     *   model: 'uncensored-ai/uncensored-video',
+     *   type: 'edit',
+     *   is_magic_prompt: true,
+     *   duration: 5,
+     *   audio: true,
+     *   video_config: { is_fast_video: false, loras: ['flip', 'nsfw'] }
+     * }, 'uncensored-video');
+     * ```
+     */
+    generate(request: ChatCompletionRequest & UncensoredAIRequestOptions, endpoint?: string): Promise<ChatCompletionResponse>;
+    /**
+     * Transform Uncensored AI response to OpenAI format
+     */
+    private transformToOpenAIFormat;
+    /**
+     * Create abort signal with timeout
+     */
+    private createAbortSignal;
+}
+
 declare class EternalAI {
     readonly chat: Chat;
     readonly nanoBanana: NanoBanana;
     readonly tavily: Tavily;
+    readonly uncensoredAI: UncensoredAI;
     private readonly config;
     constructor(config: EternalAIConfig);
 }

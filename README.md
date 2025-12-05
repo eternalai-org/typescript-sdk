@@ -53,6 +53,71 @@ const result = await eai.chat.send({
 console.log(result.choices[0].message.content);
 ```
 
+### Uncensored AI - Image & Video Generation
+
+Generate images and videos using Uncensored AI. The SDK automatically polls for results until completion:
+
+```typescript
+// Text-to-Image Generation
+const imageResult = await eai.uncensoredAI.generate({
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'A beautiful sunset over the ocean with vibrant colors',
+        },
+      ],
+    },
+  ],
+  model: 'uncensored-ai/uncensored-image',
+  type: 'new',
+  polling: {
+    interval: 3000, // Poll every 3 seconds
+    maxAttempts: 60, // Maximum 60 attempts
+    onStatusUpdate: (status, attempt) => {
+      console.log(`[${attempt}] Status: ${status}`);
+    },
+  },
+});
+
+// Image URL is in the response content
+const imageUrl = imageResult.choices[0].message.content;
+console.log('Generated image:', imageUrl);
+```
+
+```typescript
+// Video Generation
+const videoResult = await eai.uncensoredAI.generate({
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Create a smooth animation',
+        },
+      ],
+    },
+  ],
+  model: 'uncensored-ai/uncensored-video',
+  type: 'new',
+  is_magic_prompt: true,
+  duration: 5,
+  audio: false,
+  polling: {
+    interval: 5000, // Video takes longer, poll every 5 seconds
+    maxAttempts: 120,
+  },
+});
+
+const videoUrl = videoResult.choices[0].message.content;
+console.log('Generated video:', videoUrl);
+```
+
+**Note:** The `generate()` method automatically polls for results. Set `polling: false` to disable auto-polling and get the request_id immediately.
+
 ## Installation
 
 Install from npm:
@@ -117,10 +182,11 @@ Access multiple AI providers through one unified API:
 - **Gemini** (`gemini/*`) - Google's Gemini models
 - **Qwen** (`qwen/*`) - Alibaba's Qwen models
 - **Tavily** (`tavily/*`) - AI-powered search engine
+- **Uncensored AI** (`uncensored-ai/*`) - Image/video generation (`uncensored-image`, `uncensored-video`)
 - **Nano Banana** (`nano-banana/*`) - Custom Gemini endpoint with image generation
-- **And more** - Uncensored AI, Wan, and growing
+- **And more** - Wan, and growing
 
-**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `anthropic/claude-opus-4-5`, `tavily/search`
+**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `uncensored-ai/uncensored-image`, `uncensored-ai/uncensored-video`
 
 ## API Reference
 
@@ -164,6 +230,51 @@ Send a chat completion request.
 
 - If `stream: true` → `AsyncIterable<ChatCompletionChunk>`
 - If `stream: false` → `ChatCompletionResponse`
+
+#### `uncensoredAI.generate(request, endpoint)`
+
+Generate images or videos using Uncensored AI. Automatically polls for results until completion.
+
+**Parameters:**
+
+- `request.messages` (ChatMessage[], required) - Array of chat messages with content parts
+- `request.model` (string, required) - Model name: `"uncensored-ai/uncensored-image"` or `"uncensored-ai/uncensored-video"`
+- `request.type` (`'new'` | `'edit'`, optional) - Generation type: `'new'` for text-to-image/video, `'edit'` for image-to-image/video
+- `request.lora_config` (Record<string, number>, optional) - LoRA configuration for image generation
+- `request.image_config` (string | Record<string, any>, optional) - Image configuration for image-to-image
+- `request.video_config` (string | Record<string, any>, optional) - Video configuration
+- `request.is_magic_prompt` (boolean, optional) - Enable magic prompt for video
+- `request.duration` (number, optional) - Video duration in seconds
+- `request.audio` (boolean, optional) - Enable audio in video
+- `request.polling` (PollingOptions | false, optional) - Polling configuration. Default: auto-poll with smart defaults
+  - `polling.interval` (number, optional) - Polling interval in ms (default: 3000 for image, 5000 for video)
+  - `polling.maxAttempts` (number, optional) - Maximum polling attempts (default: 60 for image, 120 for video)
+  - `polling.onStatusUpdate` (function, optional) - Callback for status updates: `(status: string, attempt: number) => void`
+- `endpoint` (string, optional) - Endpoint name: `'uncensored-image'` or `'uncensored-video'` (default: `'uncensored-image'`)
+
+**Returns:**
+
+- `ChatCompletionResponse` - Response with generated URL in `choices[0].message.content`
+
+**Example:**
+
+```typescript
+const result = await eai.uncensoredAI.generate({
+  messages: [{
+    role: 'user',
+    content: [{ type: 'text', text: 'A beautiful sunset' }]
+  }],
+  model: 'uncensored-ai/uncensored-image',
+  type: 'new',
+  polling: {
+    onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+  }
+}, 'uncensored-image');
+
+const imageUrl = result.choices[0].message.content;
+```
+
+**Note:** The method automatically polls for results. Set `polling: false` to disable auto-polling and get the request_id immediately.
 
 ## TypeScript Support
 

@@ -8,11 +8,13 @@ import type {
 } from '../types';
 import { NanoBanana } from './nano-banana';
 import { Tavily } from './tavily';
+import { UncensoredAI } from './uncensored-ai';
 
 const NANO_BANANA_PREFIX = 'nano-banana/';
 const TAVILY_PREFIX = 'tavily/';
+const UNCENSORED_AI_PREFIX = 'uncensored-ai/';
 
-type CustomProvider = 'nano-banana' | 'tavily' | null;
+type CustomProvider = 'nano-banana' | 'tavily' | 'uncensored-ai' | null;
 
 /**
  * Chat service for sending messages and receiving responses
@@ -22,16 +24,18 @@ export class Chat {
   private readonly baseUrl = 'https://open.eternalai.org/api/v1';
   private readonly nanoBanana: NanoBanana;
   private readonly tavily: Tavily;
+  private readonly uncensoredAI: UncensoredAI;
 
   constructor(config: EternalAIConfig) {
     this.config = config;
     this.nanoBanana = new NanoBanana(config);
     this.tavily = new Tavily(config);
+    this.uncensoredAI = new UncensoredAI(config);
   }
 
   /**
    * Check if model uses a custom provider prefix and extract the actual model/endpoint name
-   * @param model - Model name that may include custom prefix like "nano-banana/" or "tavily/"
+   * @param model - Model name that may include custom prefix like "nano-banana/", "tavily/", or "uncensored-ai/"
    * @returns Object with provider type and extracted model name
    */
   private parseModelName(model: string): { provider: CustomProvider; modelName: string } {
@@ -45,6 +49,12 @@ export class Chat {
       return {
         provider: 'tavily',
         modelName: model.slice(TAVILY_PREFIX.length),
+      };
+    }
+    if (model.startsWith(UNCENSORED_AI_PREFIX)) {
+      return {
+        provider: 'uncensored-ai',
+        modelName: model.slice(UNCENSORED_AI_PREFIX.length),
       };
     }
     return { provider: null, modelName: model };
@@ -94,6 +104,30 @@ export class Chat {
     if (provider === 'tavily') {
       // Tavily doesn't support streaming, always use non-streaming
       return this.tavily.search(request, modelName);
+    }
+
+    if (provider === 'uncensored-ai') {
+      // UncensoredAI doesn't support streaming, always use non-streaming
+      // generate() automatically polls and returns UncensoredResultResponse
+      const result = await this.uncensoredAI.generate(request, modelName);
+
+      // Transform UncensoredResultResponse to ChatCompletionResponse
+      const resultUrl = result.result_url;
+
+      return {
+        id: result.request_id || `chatcmpl-uncensored-${Date.now()}`,
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: request.model,
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: resultUrl,
+          },
+          finish_reason: 'stop',
+        }],
+      };
     }
 
     // Standard EternalAI API request
