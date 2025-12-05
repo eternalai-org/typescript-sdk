@@ -6,6 +6,9 @@ import type {
   ChatCompletionChunk,
   ChatCompletionResponse,
 } from '../types';
+import { NanoBanana } from './nano-banana';
+
+const NANO_BANANA_PREFIX = 'nano-banana/';
 
 /**
  * Chat service for sending messages and receiving responses
@@ -13,9 +16,26 @@ import type {
 export class Chat {
   private readonly config: EternalAIConfig;
   private readonly baseUrl = 'https://open.eternalai.org/api/v1';
+  private readonly nanoBanana: NanoBanana;
 
   constructor(config: EternalAIConfig) {
     this.config = config;
+    this.nanoBanana = new NanoBanana(config);
+  }
+
+  /**
+   * Check if model uses nano-banana prefix and extract the actual model name
+   * @param model - Model name that may include "nano-banana/" prefix
+   * @returns Object with isNanoBanana flag and extracted model name
+   */
+  private parseModelName(model: string): { isNanoBanana: boolean; modelName: string } {
+    if (model.startsWith(NANO_BANANA_PREFIX)) {
+      return {
+        isNanoBanana: true,
+        modelName: model.slice(NANO_BANANA_PREFIX.length),
+      };
+    }
+    return { isNanoBanana: false, modelName: model };
   }
 
   /**
@@ -47,6 +67,19 @@ export class Chat {
   async send(
     request: ChatCompletionRequest
   ): Promise<AsyncIterable<ChatCompletionChunk> | ChatCompletionResponse> {
+    // Check if model uses nano-banana prefix
+    const { isNanoBanana, modelName } = this.parseModelName(request.model);
+
+    if (isNanoBanana) {
+      // Route to NanoBanana service
+      if (request.stream) {
+        return this.nanoBanana.streamContent(request, modelName);
+      } else {
+        return this.nanoBanana.generateContent(request, modelName);
+      }
+    }
+
+    // Standard EternalAI API request
     const url = `${this.baseUrl}/chat/completions`;
     const headers = {
       'Content-Type': 'application/json',

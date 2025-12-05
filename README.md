@@ -111,13 +111,14 @@ npm install git+https://github.com/eternalai-org/sdk.git
 
 Access multiple AI providers through one unified API:
 
+- **OpenAI** (`openai/*`) - GPT-4, GPT-3.5, and more
+- **Claude** (`anthropic/*`) - Anthropic's Claude models
+- **Grok** (`xai/*`) - xAI's Grok models
+- **Gemini** (`gemini/*`) - Google's Gemini models
+- **Nano Banana** (`nano-banana/*`) - Custom Gemini endpoint with image generation
+- **And more** - Uncensored AI, Tavily, Qwen, Wan, and growing
 
-- **Uncensored AI** - Open and uncensored models
-- **OpenAI** - GPT-4, GPT-3.5, and more
-- **Claude** - Anthropic's Claude models
-- **Grok** - xAI's Grok models
-- **Gemini** - Google's Gemini models
-- **And more** - Tavily, Qwen, Wan, Nano Banana, and growing
+**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `anthropic/claude-opus-4-5`, `nano-banana/gemini-2.5-flash-image`
 
 ## API Reference
 

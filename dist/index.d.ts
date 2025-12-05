@@ -115,7 +115,14 @@ interface ChatCompletionResponse {
 declare class Chat {
     private readonly config;
     private readonly baseUrl;
+    private readonly nanoBanana;
     constructor(config: EternalAIConfig);
+    /**
+     * Check if model uses nano-banana prefix and extract the actual model name
+     * @param model - Model name that may include "nano-banana/" prefix
+     * @returns Object with isNanoBanana flag and extracted model name
+     */
+    private parseModelName;
     /**
      * Send a streaming chat completion request
      * @param request - Chat completion request with stream: true, and optional image_config for image generation models
@@ -144,10 +151,57 @@ declare class Chat {
     private handleStreamingResponse;
 }
 
+/**
+ * NanoBanana service for custom endpoint models
+ * Transforms OpenAI-style requests to Google Gemini format
+ */
+declare class NanoBanana {
+    private readonly config;
+    private readonly baseUrl;
+    constructor(config: EternalAIConfig);
+    /**
+     * Generate content using nano-banana endpoint
+     * @param request - Chat completion request in OpenAI format
+     * @param geminiModel - The Gemini model to use (default: gemini-2.5-flash-image)
+     * @returns Chat completion response in OpenAI format
+     */
+    generateContent(request: ChatCompletionRequest, geminiModel?: string): Promise<ChatCompletionResponse>;
+    /**
+     * Generate image content using nano-banana endpoint
+     * @param prompt - Text prompt for image generation
+     * @param geminiModel - The Gemini model to use (default: gemini-2.5-flash-image)
+     * @returns Base64 encoded image data or null if no image in response
+     */
+    generateImage(prompt: string, geminiModel?: string): Promise<{
+        mimeType: string;
+        data: string;
+    } | null>;
+    /**
+     * Stream content using nano-banana endpoint
+     * @param request - Chat completion request in OpenAI format
+     * @param geminiModel - The Gemini model to use
+     * @returns Async iterable of chat completion chunks
+     */
+    streamContent(request: ChatCompletionRequest, geminiModel?: string): AsyncIterable<ChatCompletionChunk>;
+    /**
+     * Transform OpenAI format request to Gemini format
+     */
+    private transformToGeminiFormat;
+    /**
+     * Transform Gemini response to OpenAI format
+     */
+    private transformToOpenAIFormat;
+    /**
+     * Create abort signal with timeout
+     */
+    private createAbortSignal;
+}
+
 declare class EternalAI {
     readonly chat: Chat;
+    readonly nanoBanana: NanoBanana;
     private readonly config;
     constructor(config: EternalAIConfig);
 }
 
-export { Chat, type ChatCompletionChoice, type ChatCompletionChunk, type ChatCompletionDelta, type ChatCompletionMessage, type ChatCompletionNonStreamingChoice, type ChatCompletionNonStreamingRequest, type ChatCompletionRequest, type ChatCompletionRequestBase, type ChatCompletionResponse, type ChatCompletionStreamingRequest, type ChatMessage, EternalAI, type EternalAIConfig, type MessageRole };
+export { Chat, type ChatCompletionChoice, type ChatCompletionChunk, type ChatCompletionDelta, type ChatCompletionMessage, type ChatCompletionNonStreamingChoice, type ChatCompletionNonStreamingRequest, type ChatCompletionRequest, type ChatCompletionRequestBase, type ChatCompletionResponse, type ChatCompletionStreamingRequest, type ChatMessage, EternalAI, type EternalAIConfig, type MessageRole, NanoBanana };

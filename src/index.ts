@@ -20,3 +20,6 @@ export type {
 
 // Export chat service (if direct access needed)
 export { Chat } from './services/chat';
+
+// Export nano-banana service (for custom endpoints)
+export { NanoBanana } from './services/nano-banana';
