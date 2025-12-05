@@ -53,12 +53,72 @@ const result = await eai.chat.send({
 console.log(result.choices[0].message.content);
 ```
 
-### Uncensored AI - Image & Video Generation
+### Provider-Specific Features
 
-Generate images and videos using Uncensored AI. The SDK automatically polls for results until completion:
+The SDK automatically routes requests to the appropriate provider based on the model name prefix. All providers can be accessed through `chat.send()`:
+
+#### Nano Banana - Gemini with Image Generation
 
 ```typescript
-// Text-to-Image Generation
+// Using nano-banana provider (supports streaming)
+const result = await eai.chat.send({
+  messages: [{ role: 'user', content: 'Describe this image' }],
+  model: 'nano-banana/gemini-2.5-flash-image',
+  stream: true, // Supports streaming
+});
+
+for await (const chunk of result) {
+  console.log(chunk.choices[0].delta.content);
+}
+```
+
+#### Tavily - AI-Powered Search
+
+```typescript
+// Using Tavily for search (non-streaming only)
+const result = await eai.chat.send({
+  messages: [{ role: 'user', content: 'What is the latest news about AI?' }],
+  model: 'tavily/search',
+  stream: false, // Tavily doesn't support streaming
+});
+
+console.log(result.choices[0].message.content);
+// Returns search results with sources
+```
+
+#### Uncensored AI - Image & Video Generation
+
+You can use Uncensored AI through `chat.send()` (simplified) or `uncensoredAI.generate()` (with advanced options):
+
+**Option 1: Using `chat.send()` (Simplified)**
+
+```typescript
+// Text-to-Image Generation via chat.send()
+const imageResult = await eai.chat.send({
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'A beautiful sunset over the ocean with vibrant colors',
+        },
+      ],
+    },
+  ],
+  model: 'uncensored-ai/uncensored-image',
+  stream: false, // Uncensored AI doesn't support streaming
+});
+
+// Image URL is in the response content
+const imageUrl = imageResult.choices[0].message.content;
+console.log('Generated image:', imageUrl);
+```
+
+**Option 2: Using `uncensoredAI.generate()` (Advanced Options)**
+
+```typescript
+// Text-to-Image Generation with polling options
 const imageResult = await eai.uncensoredAI.generate({
   messages: [
     {
@@ -73,6 +133,7 @@ const imageResult = await eai.uncensoredAI.generate({
   ],
   model: 'uncensored-ai/uncensored-image',
   type: 'new',
+  lora_config: { 'style-lora': 1 },
   polling: {
     interval: 3000, // Poll every 3 seconds
     maxAttempts: 60, // Maximum 60 attempts
@@ -80,10 +141,9 @@ const imageResult = await eai.uncensoredAI.generate({
       console.log(`[${attempt}] Status: ${status}`);
     },
   },
-});
+}, 'uncensored-image');
 
-// Image URL is in the response content
-const imageUrl = imageResult.choices[0].message.content;
+const imageUrl = imageResult.result_url;
 console.log('Generated image:', imageUrl);
 ```
 
@@ -110,13 +170,16 @@ const videoResult = await eai.uncensoredAI.generate({
     interval: 5000, // Video takes longer, poll every 5 seconds
     maxAttempts: 120,
   },
-});
+}, 'uncensored-video');
 
-const videoUrl = videoResult.choices[0].message.content;
+const videoUrl = videoResult.result_url;
 console.log('Generated video:', videoUrl);
 ```
 
-**Note:** The `generate()` method automatically polls for results. Set `polling: false` to disable auto-polling and get the request_id immediately.
+**Note:** 
+- `chat.send()` with `uncensored-ai/` prefix automatically polls and returns a `ChatCompletionResponse` with the URL in `choices[0].message.content`
+- `uncensoredAI.generate()` provides more control over polling options and returns `UncensoredResultResponse` with `result_url` directly
+- Both methods automatically poll for results until completion
 
 ## Installation
 
@@ -216,24 +279,65 @@ const client = new EternalAI({
 
 #### `chat.send(request)`
 
-Send a chat completion request.
+Send a chat completion request. Automatically routes to the appropriate provider based on the model name prefix.
+
+**Provider Routing:**
+- `openai/*`, `anthropic/*`, `xai/*`, `gemini/*`, `qwen/*` → Standard EternalAI API
+- `nano-banana/*` → Nano Banana service (supports streaming)
+- `tavily/*` → Tavily search service (non-streaming only)
+- `uncensored-ai/*` → Uncensored AI service (non-streaming only, auto-polls)
 
 **Parameters:**
 
 - `request.messages` (ChatMessage[], required) - Array of chat messages
-- `request.model` (string, required) - Model name (e.g., `"openai/gpt-5.1"`)
+- `request.model` (string, required) - Model name with provider prefix (e.g., `"openai/gpt-5.1"`, `"nano-banana/gemini-2.5-flash-image"`, `"tavily/search"`, `"uncensored-ai/uncensored-image"`)
 - `request.stream` (boolean, optional) - Enable streaming responses (default: `false`)
+  - Note: `tavily/*` and `uncensored-ai/*` don't support streaming
 - `request.image_config` (ImageConfigOptions, optional) - Image generation configuration for models that support image generation
   - `image_config.aspect_ratio` (string, optional) - Aspect ratio for generated images (e.g., `"16:9"`, `"1:1"`, `"9:16"`)
 
 **Returns:**
 
-- If `stream: true` → `AsyncIterable<ChatCompletionChunk>`
+- If `stream: true` → `AsyncIterable<ChatCompletionChunk>` (only for standard models and `nano-banana/*`)
 - If `stream: false` → `ChatCompletionResponse`
+
+**Examples:**
+
+```typescript
+// Standard model
+const result = await eai.chat.send({
+  messages: [{ role: 'user', content: 'Hello' }],
+  model: 'openai/gpt-5.1',
+});
+
+// Nano Banana with streaming
+const stream = await eai.chat.send({
+  messages: [{ role: 'user', content: 'Hello' }],
+  model: 'nano-banana/gemini-2.5-flash-image',
+  stream: true,
+});
+
+// Tavily search
+const search = await eai.chat.send({
+  messages: [{ role: 'user', content: 'Latest AI news' }],
+  model: 'tavily/search',
+});
+
+// Uncensored AI (auto-polls)
+const image = await eai.chat.send({
+  messages: [{
+    role: 'user',
+    content: [{ type: 'text', text: 'A sunset' }]
+  }],
+  model: 'uncensored-ai/uncensored-image',
+});
+```
 
 #### `uncensoredAI.generate(request, endpoint)`
 
-Generate images or videos using Uncensored AI. Automatically polls for results until completion.
+Generate images or videos using Uncensored AI with advanced options. Automatically polls for results until completion.
+
+**Note:** For simpler usage, you can also use `chat.send()` with `uncensored-ai/uncensored-image` or `uncensored-ai/uncensored-video` model names.
 
 **Parameters:**
 
@@ -246,15 +350,11 @@ Generate images or videos using Uncensored AI. Automatically polls for results u
 - `request.is_magic_prompt` (boolean, optional) - Enable magic prompt for video
 - `request.duration` (number, optional) - Video duration in seconds
 - `request.audio` (boolean, optional) - Enable audio in video
-- `request.polling` (PollingOptions | false, optional) - Polling configuration. Default: auto-poll with smart defaults
-  - `polling.interval` (number, optional) - Polling interval in ms (default: 3000 for image, 5000 for video)
-  - `polling.maxAttempts` (number, optional) - Maximum polling attempts (default: 60 for image, 120 for video)
-  - `polling.onStatusUpdate` (function, optional) - Callback for status updates: `(status: string, attempt: number) => void`
 - `endpoint` (string, optional) - Endpoint name: `'uncensored-image'` or `'uncensored-video'` (default: `'uncensored-image'`)
 
 **Returns:**
 
-- `ChatCompletionResponse` - Response with generated URL in `choices[0].message.content`
+- `UncensoredResultResponse` - Response with `result_url` containing the generated image/video URL
 
 **Example:**
 
@@ -266,15 +366,13 @@ const result = await eai.uncensoredAI.generate({
   }],
   model: 'uncensored-ai/uncensored-image',
   type: 'new',
-  polling: {
-    onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
-  }
+  lora_config: { 'style-lora': 1 }
 }, 'uncensored-image');
 
-const imageUrl = result.choices[0].message.content;
+const imageUrl = result.result_url;
 ```
 
-**Note:** The method automatically polls for results. Set `polling: false` to disable auto-polling and get the request_id immediately.
+**Note:** The method automatically polls for results with smart defaults (3s interval, 60 attempts for images; 5s interval, 120 attempts for videos).
 
 ## TypeScript Support
 
