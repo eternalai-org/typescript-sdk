@@ -1,6 +1,6 @@
 {
     "name": "@eternalai-org/sdk",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Official TypeScript SDK for EternalAI - Next-generation API platform with unified access to hundreds of AI models, cashback rewards, and OpenAI-compatible streaming support",
     "type": "module",
     "main": "./dist/index.cjs",
@@ -52,7 +52,11 @@
         "sdk",
         "cashback",
         "llm",
-        "artificial-intelligence"
+        "artificial-intelligence",
+        "image-generation",
+        "video-generation",
+        "wan",
+        "uncensored-ai"
     ],
     "author": "EternalAI",
     "license": "MIT",

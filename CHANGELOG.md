@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-12-05
+
+### Added
+- 🚀 **New AI Service Providers** - Added support for 4 specialized AI services:
+  - **Nano Banana** (`nano-banana/*`) - Gemini models with image generation support
+  - **Tavily** (`tavily/*`) - AI-powered search engine with sources
+  - **Uncensored AI** (`uncensored-ai/*`) - Image and video generation (`uncensored-image`, `uncensored-video`)
+  - **Wan** (`wan/*`) - Image-to-video generation (`wan2.5-i2v-preview`)
+- All services support both `chat.send()` (simplified) and direct service access (advanced)
+- Automatic async polling for generation tasks (Uncensored AI, Wan)
+- Full TypeScript type safety for all new services
+
+### Changed
+- Enhanced Quick Start documentation with 4 comprehensive examples
+- Updated API reference with new service documentation
+- Added new keywords: `image-generation`, `video-generation`, `wan`, `uncensored-ai`
+
 ## [0.3.0] - 2025-12-04
 
 ### ⚠️ BREAKING CHANGES
@@ -104,6 +121,7 @@ Access multiple AI providers through EternalAI's unified API:
 - Google Gemini
 - And more via [eternalai.org](https://eternalai.org/api/build)
 
+[0.4.0]: https://github.com/eternalai-org/sdk/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eternalai-org/sdk/releases/tag/v0.3.0
 [0.2.1]: https://github.com/eternalai-org/sdk/releases/tag/v0.2.1
 [0.2.0]: https://github.com/eternalai-org/sdk/releases/tag/v0.2.0
