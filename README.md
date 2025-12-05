@@ -116,10 +116,11 @@ Access multiple AI providers through one unified API:
 - **Grok** (`xai/*`) - xAI's Grok models
 - **Gemini** (`gemini/*`) - Google's Gemini models
 - **Qwen** (`qwen/*`) - Alibaba's Qwen models
+- **Tavily** (`tavily/*`) - AI-powered search engine
 - **Nano Banana** (`nano-banana/*`) - Custom Gemini endpoint with image generation
-- **And more** - Uncensored AI, Tavily, Wan, and growing
+- **And more** - Uncensored AI, Wan, and growing
 
-**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `anthropic/claude-opus-4-5`, `qwen/qwen-flash-2025-07-28`
+**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `anthropic/claude-opus-4-5`, `tavily/search`
 
 ## API Reference
 

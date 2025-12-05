@@ -197,39 +197,129 @@ var NanoBanana = class {
   }
 };
 
+// src/services/tavily.ts
+var Tavily = class {
+  constructor(config) {
+    this.baseUrl = "https://open.eternalai.org/tavily";
+    this.config = config;
+  }
+  /**
+   * Perform a search using Tavily endpoint
+   * @param request - Chat completion request in OpenAI format
+   * @param endpoint - The Tavily endpoint to use (default: search)
+   * @returns Chat completion response in OpenAI format
+   */
+  async search(request, endpoint = "search") {
+    const url = `${this.baseUrl}/${endpoint}`;
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${this.config.apiKey}`
+    };
+    const lastUserMessage = [...request.messages].reverse().find((m) => m.role === "user");
+    const query = lastUserMessage?.content || "";
+    const body = JSON.stringify({ query });
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body,
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Tavily request failed with status ${response.status}: ${errorText}`);
+    }
+    const tavilyResponse = await response.json();
+    return this.transformToOpenAIFormat(tavilyResponse, `tavily/${endpoint}`);
+  }
+  /**
+   * Transform Tavily response to OpenAI format
+   */
+  transformToOpenAIFormat(tavilyResponse, model) {
+    let content = "";
+    if (tavilyResponse.answer) {
+      content = tavilyResponse.answer;
+    }
+    if (tavilyResponse.results && tavilyResponse.results.length > 0) {
+      if (content) content += "\n\n---\n\n**Sources:**\n";
+      for (const result of tavilyResponse.results) {
+        content += `
+- [${result.title}](${result.url})
+  ${result.content.substring(0, 200)}...
+`;
+      }
+    }
+    return {
+      id: `chatcmpl-tavily-${Date.now()}`,
+      object: "chat.completion",
+      created: Math.floor(Date.now() / 1e3),
+      model,
+      choices: [{
+        index: 0,
+        message: {
+          role: "assistant",
+          content: content || "No results found."
+        },
+        finish_reason: "stop"
+      }]
+    };
+  }
+  /**
+   * Create abort signal with timeout
+   */
+  createAbortSignal() {
+    if (this.config.timeout) {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), this.config.timeout);
+      return controller.signal;
+    }
+    return void 0;
+  }
+};
+
 // src/services/chat.ts
 var NANO_BANANA_PREFIX = "nano-banana/";
+var TAVILY_PREFIX = "tavily/";
 var Chat = class {
   constructor(config) {
     this.baseUrl = "https://open.eternalai.org/api/v1";
     this.config = config;
     this.nanoBanana = new NanoBanana(config);
+    this.tavily = new Tavily(config);
   }
   /**
-   * Check if model uses nano-banana prefix and extract the actual model name
-   * @param model - Model name that may include "nano-banana/" prefix
-   * @returns Object with isNanoBanana flag and extracted model name
+   * Check if model uses a custom provider prefix and extract the actual model/endpoint name
+   * @param model - Model name that may include custom prefix like "nano-banana/" or "tavily/"
+   * @returns Object with provider type and extracted model name
    */
   parseModelName(model) {
     if (model.startsWith(NANO_BANANA_PREFIX)) {
       return {
-        isNanoBanana: true,
+        provider: "nano-banana",
         modelName: model.slice(NANO_BANANA_PREFIX.length)
       };
     }
-    return { isNanoBanana: false, modelName: model };
+    if (model.startsWith(TAVILY_PREFIX)) {
+      return {
+        provider: "tavily",
+        modelName: model.slice(TAVILY_PREFIX.length)
+      };
+    }
+    return { provider: null, modelName: model };
   }
   /**
    * Implementation of send method
    */
   async send(request) {
-    const { isNanoBanana, modelName } = this.parseModelName(request.model);
-    if (isNanoBanana) {
+    const { provider, modelName } = this.parseModelName(request.model);
+    if (provider === "nano-banana") {
       if (request.stream) {
         return this.nanoBanana.streamContent(request, modelName);
       } else {
         return this.nanoBanana.generateContent(request, modelName);
       }
+    }
+    if (provider === "tavily") {
+      return this.tavily.search(request, modelName);
     }
     const url = `${this.baseUrl}/chat/completions`;
     const headers = {
@@ -314,6 +404,7 @@ var EternalAI = class {
     this.config = config;
     this.chat = new Chat(this.config);
     this.nanoBanana = new NanoBanana(this.config);
+    this.tavily = new Tavily(this.config);
   }
 };
 

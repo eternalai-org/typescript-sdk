@@ -116,11 +116,12 @@ declare class Chat {
     private readonly config;
     private readonly baseUrl;
     private readonly nanoBanana;
+    private readonly tavily;
     constructor(config: EternalAIConfig);
     /**
-     * Check if model uses nano-banana prefix and extract the actual model name
-     * @param model - Model name that may include "nano-banana/" prefix
-     * @returns Object with isNanoBanana flag and extracted model name
+     * Check if model uses a custom provider prefix and extract the actual model/endpoint name
+     * @param model - Model name that may include custom prefix like "nano-banana/" or "tavily/"
+     * @returns Object with provider type and extracted model name
      */
     private parseModelName;
     /**
@@ -197,9 +198,35 @@ declare class NanoBanana {
     private createAbortSignal;
 }
 
+/**
+ * Tavily service for search endpoint
+ * Transforms OpenAI-style requests to Tavily search format
+ */
+declare class Tavily {
+    private readonly config;
+    private readonly baseUrl;
+    constructor(config: EternalAIConfig);
+    /**
+     * Perform a search using Tavily endpoint
+     * @param request - Chat completion request in OpenAI format
+     * @param endpoint - The Tavily endpoint to use (default: search)
+     * @returns Chat completion response in OpenAI format
+     */
+    search(request: ChatCompletionRequest, endpoint?: string): Promise<ChatCompletionResponse>;
+    /**
+     * Transform Tavily response to OpenAI format
+     */
+    private transformToOpenAIFormat;
+    /**
+     * Create abort signal with timeout
+     */
+    private createAbortSignal;
+}
+
 declare class EternalAI {
     readonly chat: Chat;
     readonly nanoBanana: NanoBanana;
+    readonly tavily: Tavily;
     private readonly config;
     constructor(config: EternalAIConfig);
 }

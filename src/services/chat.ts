@@ -7,8 +7,12 @@ import type {
   ChatCompletionResponse,
 } from '../types';
 import { NanoBanana } from './nano-banana';
+import { Tavily } from './tavily';
 
 const NANO_BANANA_PREFIX = 'nano-banana/';
+const TAVILY_PREFIX = 'tavily/';
+
+type CustomProvider = 'nano-banana' | 'tavily' | null;
 
 /**
  * Chat service for sending messages and receiving responses
@@ -17,25 +21,33 @@ export class Chat {
   private readonly config: EternalAIConfig;
   private readonly baseUrl = 'https://open.eternalai.org/api/v1';
   private readonly nanoBanana: NanoBanana;
+  private readonly tavily: Tavily;
 
   constructor(config: EternalAIConfig) {
     this.config = config;
     this.nanoBanana = new NanoBanana(config);
+    this.tavily = new Tavily(config);
   }
 
   /**
-   * Check if model uses nano-banana prefix and extract the actual model name
-   * @param model - Model name that may include "nano-banana/" prefix
-   * @returns Object with isNanoBanana flag and extracted model name
+   * Check if model uses a custom provider prefix and extract the actual model/endpoint name
+   * @param model - Model name that may include custom prefix like "nano-banana/" or "tavily/"
+   * @returns Object with provider type and extracted model name
    */
-  private parseModelName(model: string): { isNanoBanana: boolean; modelName: string } {
+  private parseModelName(model: string): { provider: CustomProvider; modelName: string } {
     if (model.startsWith(NANO_BANANA_PREFIX)) {
       return {
-        isNanoBanana: true,
+        provider: 'nano-banana',
         modelName: model.slice(NANO_BANANA_PREFIX.length),
       };
     }
-    return { isNanoBanana: false, modelName: model };
+    if (model.startsWith(TAVILY_PREFIX)) {
+      return {
+        provider: 'tavily',
+        modelName: model.slice(TAVILY_PREFIX.length),
+      };
+    }
+    return { provider: null, modelName: model };
   }
 
   /**
@@ -67,16 +79,21 @@ export class Chat {
   async send(
     request: ChatCompletionRequest
   ): Promise<AsyncIterable<ChatCompletionChunk> | ChatCompletionResponse> {
-    // Check if model uses nano-banana prefix
-    const { isNanoBanana, modelName } = this.parseModelName(request.model);
+    // Check if model uses custom provider prefix
+    const { provider, modelName } = this.parseModelName(request.model);
 
-    if (isNanoBanana) {
-      // Route to NanoBanana service
+    // Route to custom providers
+    if (provider === 'nano-banana') {
       if (request.stream) {
         return this.nanoBanana.streamContent(request, modelName);
       } else {
         return this.nanoBanana.generateContent(request, modelName);
       }
+    }
+
+    if (provider === 'tavily') {
+      // Tavily doesn't support streaming, always use non-streaming
+      return this.tavily.search(request, modelName);
     }
 
     // Standard EternalAI API request
