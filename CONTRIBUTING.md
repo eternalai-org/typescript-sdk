@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/eternalai-org/sdk.git
+   git clone https://github.com/eternalai-org/typescript-sdk.git
    cd sdk
    ```
 
@@ -187,6 +187,6 @@ For more information about EternalAI platform, visit [eternalai.org/api/build](h
 
 ## Questions?
 
-- 🐛 **Bug Reports**: Open an issue on [GitHub](https://github.com/eternalai-org/sdk/issues)
+- 🐛 **Bug Reports**: Open an issue on [GitHub](https://github.com/eternalai-org/typescript-sdk/issues)
 - 💬 **Questions**: Open a discussion or issue
 - 📖 **Documentation**: See [README.md](./README.md) and [tests/README.md](./tests/README.md)

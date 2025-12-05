@@ -340,10 +340,10 @@ Or install directly from GitHub:
 
 ```bash
 # Using Bun
-bun add git+https://github.com/eternalai-org/sdk.git
+bun add git+https://github.com/eternalai-org/typescript-sdk.git
 
 # Using npm
-npm install git+https://github.com/eternalai-org/sdk.git
+npm install git+https://github.com/eternalai-org/typescript-sdk.git
 ```
 
 ## Getting Your API Key
@@ -654,8 +654,8 @@ For issues and questions:
 - 📦 **npm Package**: [npmjs.com/package/@eternalai-org/sdk](https://www.npmjs.com/package/@eternalai-org/sdk)
 - 🌐 **Website**: [eternalai.org](https://eternalai.org)
 - 📖 **API Platform**: [eternalai.org/api/build](https://eternalai.org/api/build)
-- 🐛 **GitHub Issues**: [github.com/eternalai-org/sdk/issues](https://github.com/eternalai-org/sdk/issues)
-- 📚 **Documentation**: [github.com/eternalai-org/sdk](https://github.com/eternalai-org/sdk)
+- 🐛 **GitHub Issues**: [github.com/eternalai-org/typescript-sdk/issues](https://github.com/eternalai-org/typescript-sdk/issues)
+- 📚 **Documentation**: [github.com/eternalai-org/typescript-sdk](https://github.com/eternalai-org/typescript-sdk)
 
 ## Pricing
 

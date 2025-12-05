@@ -51,6 +51,6 @@ jobs:
           body: |
             Release ${{ github.event.inputs.version }}
             
-            See [CHANGELOG.md](https://github.com/eternalai-org/sdk/blob/${{ github.event.inputs.version }}/CHANGELOG.md) for details.
+            See [CHANGELOG.md](https://github.com/eternalai-org/typescript-sdk/blob/${{ github.event.inputs.version }}/CHANGELOG.md) for details.
           draft: false
           prerelease: false
