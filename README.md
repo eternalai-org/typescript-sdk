@@ -1,543 +1,201 @@
 # @eternalai-org/sdk
 
-Official TypeScript SDK for **EternalAI** - The next-generation API platform for AI applications. Access hundreds of AI models through one unified interface with cashback rewards on every API call.
+Official TypeScript SDK for **EternalAI** - Access hundreds of AI models through one unified interface.
 
 [![npm version](https://img.shields.io/npm/v/@eternalai-org/sdk.svg)](https://www.npmjs.com/package/@eternalai-org/sdk)
-[![Bun](https://img.shields.io/badge/Bun-1.0+-black?logo=bun)](https://bun.sh)
-[![Yarn](https://img.shields.io/badge/Yarn-1.22+-2C8EBB?logo=yarn&logoColor=white)](https://yarnpkg.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-## Quick Start
+## Installation
 
-### Basic Chat (Streaming)
+```bash
+npm install @eternalai-org/sdk
+# or
+yarn add @eternalai-org/sdk
+# or
+bun add @eternalai-org/sdk
+```
+
+## Quick Start
 
 ```typescript
 import { EternalAI } from '@eternalai-org/sdk';
 
 const eai = new EternalAI({ apiKey: 'your-api-key' });
+```
 
-// Standard chat with streaming
-const result = await eai.chat.send({
-  messages: [{ role: 'user', content: 'Hello, how are you?' }],
+### Chat Completion
+
+```typescript
+// Streaming
+const stream = await eai.chat.send({
+  messages: [{ role: 'user', content: 'Hello!' }],
   model: 'openai/gpt-5.1',
   stream: true,
 });
 
-for await (const chunk of result) {
-  console.log(chunk.choices[0].delta.content);
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0].delta.content || '');
 }
+
+// Non-streaming
+const response = await eai.chat.send({
+  messages: [{ role: 'user', content: 'Hello!' }],
+  model: 'openai/gpt-5.1',
+});
+console.log(response.choices[0].message.content);
 ```
 
 ### Image Generation
 
 ```typescript
-// Uncensored AI - Image generation
-const imageResult = await eai.chat.send({
+// Flux - Text-to-Image
+const image = await eai.chat.send({
+  messages: [{ role: 'user', content: 'A futuristic city at sunset' }],
+  model: 'flux/flux-2-pro',
+  width: 1920,
+  height: 1080,
+});
+console.log('Image URL:', image.choices[0].message.content);
+
+// Flux - Image-to-Image (with reference)
+const edited = await eai.chat.send({
   messages: [{
     role: 'user',
-    content: [{ type: 'text', text: 'A beautiful sunset over the ocean' }]
+    content: [
+      { type: 'text', text: 'Transform into cyberpunk style' },
+      { type: 'image_url', image_url: { url: 'https://example.com/photo.jpg' } }
+    ]
   }],
-  model: 'uncensored-ai/uncensored-image',
-  type: 'new', // 'new' for text-to-image, 'edit' for image-to-image
-  lora_config: { 'style-lora': 1 }, // Optional LoRA configuration
+  model: 'flux/flux-2-pro',
 });
 
-console.log('Image URL:', imageResult.choices[0].message.content);
+// Flux - Blend 2 images
+const blended = await eai.chat.send({
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Blend subject with style reference' },
+      { type: 'image_url', image_url: { url: 'https://example.com/subject.jpg' } },
+      { type: 'image_url', image_url: { url: 'https://example.com/style.jpg' } }
+    ]
+  }],
+  model: 'flux/flux-2-pro',
+});
+
+// Uncensored AI - Text-to-Image
+const uncensored = await eai.chat.send({
+  messages: [{ role: 'user', content: [{ type: 'text', text: 'A sunset' }] }],
+  model: 'uncensored-ai/uncensored-image',
+  type: 'new',                        // 'new' = text-to-image, 'edit' = image-to-image
+  lora_config: { 'style-lora': 1 },   // optional LoRA config
+});
+
+// Uncensored AI - Image-to-Image
+const edited = await eai.chat.send({
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Transform this image' },
+      { type: 'image_url', image_url: { url: 'https://example.com/input.jpg', filename: 'input.jpg' } }
+    ]
+  }],
+  model: 'uncensored-ai/uncensored-image',
+  type: 'edit',
+  image_config: { loras: ['skin', 'lightning'] },
+});
 ```
 
 ### Video Generation
 
 ```typescript
-// Wan - Image-to-video generation
-const videoResult = await eai.chat.send({
+// Wan - Image-to-Video
+const wanVideo = await eai.chat.send({
   messages: [{
     role: 'user',
     content: [
-      { type: 'text', text: 'A dynamic animation of a character coming to life' },
+      { type: 'text', text: 'Animate this character' },
       { type: 'image_url', image_url: { url: 'https://example.com/image.png' } }
     ]
   }],
   model: 'wan/wan2.5-i2v-preview',
-  resolution: '480P', // '480P', '720P', '1080P'
-  prompt_extend: true,
-  duration: 10, // seconds
-  audio: true,
+  resolution: '480P',
+  duration: 10,
 });
+console.log('Video URL:', wanVideo.choices[0].message.content);
 
-console.log('Video URL:', videoResult.choices[0].message.content);
-```
-
-### AI-Powered Search
-
-```typescript
-// Tavily - Search with sources
-const searchResult = await eai.chat.send({
-  messages: [{ role: 'user', content: 'Latest news about AI in 2024' }],
-  model: 'tavily/search',
-});
-
-console.log('Search results:', searchResult.choices[0].message.content);
-```
-
-### Image Generation Example
-
-For models that support image generation, you can configure image options:
-
-```typescript
-const result = await eai.chat.send({
-  messages: [
-    {
-      role: 'user',
-      content: 'Generate a beautiful landscape',
-    },
-  ],
-  model: 'image-generation-model',
-  image_config: {
-    aspect_ratio: '16:9', // Optional: '16:9', '1:1', '9:16', etc.
-  },
-  stream: false,
-});
-
-console.log(result.choices[0].message.content);
-```
-
-### Provider-Specific Features
-
-The SDK automatically routes requests to the appropriate provider based on the model name prefix. All providers can be accessed through `chat.send()`:
-
-#### Nano Banana - Gemini with Image Generation
-
-```typescript
-// Using nano-banana provider (supports streaming)
-const result = await eai.chat.send({
-  messages: [{ role: 'user', content: 'Describe this image' }],
-  model: 'nano-banana/gemini-2.5-flash-image',
-  stream: true, // Supports streaming
-});
-
-for await (const chunk of result) {
-  console.log(chunk.choices[0].delta.content);
-}
-```
-
-#### Tavily - AI-Powered Search
-
-```typescript
-// Using Tavily for search (non-streaming only)
-const result = await eai.chat.send({
-  messages: [{ role: 'user', content: 'What is the latest news about AI?' }],
-  model: 'tavily/search',
-  stream: false, // Tavily doesn't support streaming
-});
-
-console.log(result.choices[0].message.content);
-// Returns search results with sources
-```
-
-#### Uncensored AI - Image & Video Generation
-
-You can use Uncensored AI through `chat.send()` (simplified) or `uncensoredAI.generate()` (with advanced options):
-
-**Option 1: Using `chat.send()` (Simplified)**
-
-```typescript
-// Text-to-Image Generation via chat.send()
-const imageResult = await eai.chat.send({
-  messages: [
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: 'A beautiful sunset over the ocean with vibrant colors',
-        },
-      ],
-    },
-  ],
-  model: 'uncensored-ai/uncensored-image',
-  stream: false, // Uncensored AI doesn't support streaming
-});
-
-// Image URL is in the response content
-const imageUrl = imageResult.choices[0].message.content;
-console.log('Generated image:', imageUrl);
-```
-
-**Option 2: Using `uncensoredAI.generate()` (Advanced Options)**
-
-```typescript
-// Text-to-Image Generation with polling options
-const imageResult = await eai.uncensoredAI.generate({
-  messages: [
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: 'A beautiful sunset over the ocean with vibrant colors',
-        },
-      ],
-    },
-  ],
-  model: 'uncensored-ai/uncensored-image',
-  type: 'new',
-  lora_config: { 'style-lora': 1 },
-  polling: {
-    interval: 3000, // Poll every 3 seconds
-    maxAttempts: 60, // Maximum 60 attempts
-    onStatusUpdate: (status, attempt) => {
-      console.log(`[${attempt}] Status: ${status}`);
-    },
-  },
-}, 'uncensored-image');
-
-const imageUrl = imageResult.result_url;
-console.log('Generated image:', imageUrl);
-```
-
-```typescript
-// Video Generation
-const videoResult = await eai.uncensoredAI.generate({
-  messages: [
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: 'Create a smooth animation',
-        },
-      ],
-    },
-  ],
+// Uncensored AI - Video generation
+const uncensoredVideo = await eai.chat.send({
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Animate this image' },
+      { type: 'image_url', image_url: { url: 'https://example.com/image.jpg' } }
+    ]
+  }],
   model: 'uncensored-ai/uncensored-video',
-  type: 'new',
+  type: 'edit',
   is_magic_prompt: true,
   duration: 5,
-  audio: false,
-  polling: {
-    interval: 5000, // Video takes longer, poll every 5 seconds
-    maxAttempts: 120,
-  },
-}, 'uncensored-video');
-
-const videoUrl = videoResult.result_url;
-console.log('Generated video:', videoUrl);
-```
-
-**Note:** 
-- `chat.send()` with `uncensored-ai/` prefix automatically polls and returns a `ChatCompletionResponse` with the URL in `choices[0].message.content`
-- `uncensoredAI.generate()` provides more control over polling options and returns `UncensoredResultResponse` with `result_url` directly
-- Both methods automatically poll for results until completion
-
-#### Wan - Image-to-Video Generation
-
-Generate videos from images using the Wan service. You can use `chat.send()` (simplified) or `wan.generate()` (with advanced options):
-
-**Option 1: Using `chat.send()` (Simplified)**
-
-```typescript
-// Image-to-Video Generation via chat.send()
-const videoResult = await eai.chat.send({
-  messages: [
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: 'A scene of urban fantasy art. A dynamic graffiti art character coming to life...',
-        },
-        {
-          type: 'image_url',
-          image_url: {
-            url: 'https://example.com/image.png',
-          },
-        },
-      ],
-    },
-  ],
-  model: 'wan/wan2.5-i2v-preview',
-  resolution: '480P', // '480P', '720P', '1080P'
-  prompt_extend: true,
-  duration: 10, // seconds
   audio: true,
-  stream: false, // Wan doesn't support streaming
-});
-
-// Video URL is in the response content
-const videoUrl = videoResult.choices[0].message.content;
-console.log('Generated video:', videoUrl);
-```
-
-**Option 2: Using `wan.generate()` (Advanced Options with Polling Callbacks)**
-
-```typescript
-// Image-to-Video Generation with polling callbacks
-const videoResult = await eai.wan.generate(
-  {
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'A dynamic graffiti art character coming to life...',
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: 'https://example.com/image.png',
-            },
-          },
-        ],
-      },
-    ],
-    model: 'wan/wan2.5-i2v-preview',
-    resolution: '480P',
-    prompt_extend: true,
-    duration: 10,
-    audio: true,
-  },
-  'wan2.5-i2v-preview',
-  {
-    interval: 5000, // Poll every 5 seconds
-    maxAttempts: 120, // Maximum 120 attempts (10 minutes)
-    onStatusUpdate: (status, attempt) => {
-      console.log(`[${attempt}] Status: ${status}`);
-    },
-  }
-);
-
-const videoUrl = videoResult.output?.results?.[0]?.url;
-console.log('Generated video:', videoUrl);
-```
-
-**Note:** 
-- `chat.send()` with `wan/` prefix automatically polls and returns a `ChatCompletionResponse` with the URL in `choices[0].message.content`
-- `wan.generate()` provides more control over polling options and returns `WanResultResponse` with video URL in `output.results[0].url`
-- Both methods automatically poll for results until completion
-- Video generation typically takes longer than image generation (5-10 minutes)
-
-## Installation
-
-Install from npm:
-
-```bash
-# Using Bun (recommended)
-bun add @eternalai-org/sdk
-
-# Using npm
-npm install @eternalai-org/sdk
-
-# Using yarn
-yarn add @eternalai-org/sdk
-
-# Using pnpm
-pnpm add @eternalai-org/sdk
-```
-
-Or install directly from GitHub:
-
-```bash
-# Using Bun
-bun add git+https://github.com/eternalai-org/typescript-sdk.git
-
-# Using npm
-npm install git+https://github.com/eternalai-org/typescript-sdk.git
-```
-
-## Getting Your API Key
-
-1. Visit [eternalai.org/api/build](https://eternalai.org/api/build)
-2. Buy credits (can be used with any AI model)
-3. Get your API key from the dashboard
-4. Start building and earning cashback!
-
-## Why EternalAI?
-
-- 🚀 **Build Faster** - One API key, one unified interface for hundreds of AI models and APIs
-- 💰 **Build Cheaper** - Earn cashback on every API call — use more, earn more (up to 4.96% rewards)
-- ♾️ **Build Unlimited** - No rate limits, no restrictions — scale from OpenAI to any AI provider effortlessly
-- 🌐 **Multiple AI Providers** - Access OpenAI, Claude, Grok, Gemini, and more through a single API
-- 💳 **Credit System** - Buy credits once, use with any AI model or API service
-
-## SDK Features
-
-- 📘 **TypeScript First** - Full type safety and IntelliSense support
-- 🌊 **Streaming Support** - Real-time responses using async iterators
-- 🎯 **OpenAI Compatible** - Drop-in replacement with familiar message format
-- 📦 **Dual Module** - ESM and CommonJS support for maximum compatibility
-- ⚡️ **Lightweight** - Minimal dependencies, optimized bundle size
-- ✅ **Well Tested** - Comprehensive test suite with 100% code coverage
-- 🔒 **Type Safe** - Strict TypeScript compilation with full type inference
-- 🛡️ **Error Handling** - Robust error handling with descriptive messages
-
-## Supported AI Providers
-
-Access multiple AI providers through one unified API:
-
-- **OpenAI** (`openai/*`) - GPT-4, GPT-3.5, and more
-- **Claude** (`anthropic/*`) - Anthropic's Claude models
-- **Grok** (`xai/*`) - xAI's Grok models
-- **Gemini** (`gemini/*`) - Google's Gemini models
-- **Qwen** (`qwen/*`) - Alibaba's Qwen models
-- **Tavily** (`tavily/*`) - AI-powered search engine
-- **Uncensored AI** (`uncensored-ai/*`) - Image/video generation (`uncensored-image`, `uncensored-video`)
-- **Wan** (`wan/*`) - Image-to-video generation (`wan2.5-i2v-preview`)
-- **Nano Banana** (`nano-banana/*`) - Custom Gemini endpoint with image generation
-- **And more** - Growing list of providers
-
-**Model Format:** Use `provider/model-name` format, e.g., `openai/gpt-5.1`, `uncensored-ai/uncensored-image`, `wan/wan2.5-i2v-preview`
-
-## API Reference
-
-### `EternalAI`
-
-Main SDK client class.
-
-#### Constructor
-
-```typescript
-new EternalAI(config: EternalAIConfig)
-```
-
-**Parameters:**
-
-- `config.apiKey` (string, required) - Your EternalAI API key
-- `config.timeout` (number, optional) - Request timeout in milliseconds
-
-**Example:**
-
-```typescript
-const client = new EternalAI({
-  apiKey: 'your-api-key',
-  timeout: 30000, // 30 seconds
+  video_config: { loras: ['flip', 'nsfw'] },
 });
 ```
 
-#### `chat.send(request)`
-
-Send a chat completion request. Automatically routes to the appropriate provider based on the model name prefix.
-
-**Provider Routing:**
-- `openai/*`, `anthropic/*`, `xai/*`, `gemini/*`, `qwen/*` → Standard EternalAI API
-- `nano-banana/*` → Nano Banana service (supports streaming)
-- `tavily/*` → Tavily search service (non-streaming only)
-- `uncensored-ai/*` → Uncensored AI service (non-streaming only, auto-polls)
-- `wan/*` → Wan video generation service (non-streaming only, auto-polls)
-
-**Parameters:**
-
-- `request.messages` (ChatMessage[], required) - Array of chat messages
-- `request.model` (string, required) - Model name with provider prefix (e.g., `"openai/gpt-5.1"`, `"nano-banana/gemini-2.5-flash-image"`, `"tavily/search"`, `"uncensored-ai/uncensored-image"`, `"wan/wan2.5-i2v-preview"`)
-- `request.stream` (boolean, optional) - Enable streaming responses (default: `false`)
-  - Note: `tavily/*`, `uncensored-ai/*`, and `wan/*` don't support streaming
-- `request.image_config` (ImageConfigOptions, optional) - Image generation configuration for models that support image generation
-  - `image_config.aspect_ratio` (string, optional) - Aspect ratio for generated images (e.g., `"16:9"`, `"1:1"`, `"9:16"`)
-
-**Returns:**
-
-- If `stream: true` → `AsyncIterable<ChatCompletionChunk>` (only for standard models and `nano-banana/*`)
-- If `stream: false` → `ChatCompletionResponse`
-
-**Examples:**
+### AI Search
 
 ```typescript
-// Standard model
-const result = await eai.chat.send({
-  messages: [{ role: 'user', content: 'Hello' }],
-  model: 'openai/gpt-5.1',
-});
-
-// Nano Banana with streaming
-const stream = await eai.chat.send({
-  messages: [{ role: 'user', content: 'Hello' }],
-  model: 'nano-banana/gemini-2.5-flash-image',
-  stream: true,
-});
-
-// Tavily search
 const search = await eai.chat.send({
-  messages: [{ role: 'user', content: 'Latest AI news' }],
+  messages: [{ role: 'user', content: 'Latest AI news 2024' }],
   model: 'tavily/search',
 });
-
-// Uncensored AI (auto-polls)
-const image = await eai.chat.send({
-  messages: [{
-    role: 'user',
-    content: [{ type: 'text', text: 'A sunset' }]
-  }],
-  model: 'uncensored-ai/uncensored-image',
-});
+console.log(search.choices[0].message.content);
 ```
 
-#### `uncensoredAI.generate(request, endpoint)`
+---
 
-Generate images or videos using Uncensored AI with advanced options. Automatically polls for results until completion.
+## Supported Providers
 
-**Note:** For simpler usage, you can also use `chat.send()` with `uncensored-ai/uncensored-image` or `uncensored-ai/uncensored-video` model names.
+| Provider | Model Format | Type |
+|----------|-------------|------|
+| OpenAI | `openai/gpt-5.1` | Chat |
+| Claude | `anthropic/claude-*` | Chat |
+| Gemini | `gemini/gemini-*` | Chat |
+| Grok | `xai/grok-*` | Chat |
+| Qwen | `qwen/qwen-*` | Chat |
+| **Flux** | `flux/flux-2-pro` | Image |
+| **Uncensored AI** | `uncensored-ai/uncensored-image` | Image |
+| **Uncensored AI** | `uncensored-ai/uncensored-video` | Video |
+| **Wan** | `wan/wan2.5-i2v-preview` | Video |
+| Tavily | `tavily/search` | Search |
+| Nano Banana | `nano-banana/gemini-*` | Chat + Image |
 
-**Parameters:**
+---
 
-- `request.messages` (ChatMessage[], required) - Array of chat messages with content parts
-- `request.model` (string, required) - Model name: `"uncensored-ai/uncensored-image"` or `"uncensored-ai/uncensored-video"`
-- `request.type` (`'new'` | `'edit'`, optional) - Generation type: `'new'` for text-to-image/video, `'edit'` for image-to-image/video
-- `request.lora_config` (Record<string, number>, optional) - LoRA configuration for image generation
-- `request.image_config` (string | Record<string, any>, optional) - Image configuration for image-to-image
-- `request.video_config` (string | Record<string, any>, optional) - Video configuration
-- `request.is_magic_prompt` (boolean, optional) - Enable magic prompt for video
-- `request.duration` (number, optional) - Video duration in seconds
-- `request.audio` (boolean, optional) - Enable audio in video
-- `endpoint` (string, optional) - Endpoint name: `'uncensored-image'` or `'uncensored-video'` (default: `'uncensored-image'`)
+## Advanced Usage
 
-**Returns:**
-
-- `UncensoredResultResponse` - Response with `result_url` containing the generated image/video URL
-
-**Example:**
+### Flux with Polling Callbacks
 
 ```typescript
-const result = await eai.uncensoredAI.generate({
-  messages: [{
-    role: 'user',
-    content: [{ type: 'text', text: 'A beautiful sunset' }]
-  }],
-  model: 'uncensored-ai/uncensored-image',
-  type: 'new',
-  lora_config: { 'style-lora': 1 }
-}, 'uncensored-image');
-
-const imageUrl = result.result_url;
+const result = await eai.flux.generate(
+  {
+    messages: [{ role: 'user', content: 'A mountain landscape' }],
+    model: 'flux-2-pro',
+    width: 1024,
+    height: 1024,
+    safety_tolerance: 2,
+  },
+  'flux-2-pro',
+  {
+    interval: 3000,
+    maxAttempts: 60,
+    onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`),
+  }
+);
+console.log('URL:', result.result?.sample);
 ```
 
-**Note:** The method automatically polls for results with smart defaults (3s interval, 60 attempts for images; 5s interval, 120 attempts for videos).
-
-#### `wan.generate(request, model, pollingOptions)`
-
-Generate videos from images using Wan with advanced options. Automatically polls for results until completion.
-
-**Note:** For simpler usage, you can also use `chat.send()` with `wan/wan2.5-i2v-preview` model name.
-
-**Parameters:**
-
-- `request.messages` (ChatMessage[], required) - Array of chat messages with content parts (text + image_url)
-- `request.model` (string, required) - Model name: `"wan/wan2.5-i2v-preview"`
-- `request.resolution` (string, optional) - Video resolution: `"480P"`, `"720P"`, or `"1080P"` (default: `"480P"`)
-- `request.prompt_extend` (boolean, optional) - Enable prompt extension for better results (default: `true`)
-- `request.duration` (number, optional) - Video duration in seconds (default: `10`)
-- `request.audio` (boolean, optional) - Enable audio in video (default: `true`)
-- `model` (string, optional) - Model name: `'wan2.5-i2v-preview'` (default: `'wan2.5-i2v-preview'`)
-- `pollingOptions` (PollingOptions, optional) - Polling configuration
-  - `interval` (number, optional) - Polling interval in milliseconds (default: `5000`)
-  - `maxAttempts` (number, optional) - Maximum polling attempts (default: `120`)
-  - `onStatusUpdate` (function, optional) - Callback for status updates: `(status: string, attempt: number) => void`
-
-**Returns:**
-
-- `WanResultResponse` - Response with `output.results[0].url` containing the generated video URL
-
-**Example:**
+### Wan with Polling Callbacks
 
 ```typescript
 const result = await eai.wan.generate(
@@ -545,124 +203,136 @@ const result = await eai.wan.generate(
     messages: [{
       role: 'user',
       content: [
-        { type: 'text', text: 'A dynamic animation...' },
+        { type: 'text', text: 'Animate...' },
         { type: 'image_url', image_url: { url: 'https://...' } }
       ]
     }],
     model: 'wan/wan2.5-i2v-preview',
     resolution: '480P',
-    prompt_extend: true,
     duration: 10,
-    audio: true
   },
   'wan2.5-i2v-preview',
   {
     interval: 5000,
     maxAttempts: 120,
-    onStatusUpdate: (status, attempt) => {
-      console.log(`[${attempt}] ${status}`);
-    }
+    onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`),
   }
 );
-
-const videoUrl = result.output?.results?.[0]?.url;
+console.log('URL:', result.output?.results?.[0]?.url);
 ```
 
-**Note:** The method automatically polls for results with smart defaults (5s interval, 120 attempts). Video generation typically takes 5-10 minutes.
+### Uncensored AI with Options
 
-## TypeScript Support
+```typescript
+const result = await eai.uncensoredAI.generate(
+  {
+    messages: [{ role: 'user', content: [{ type: 'text', text: 'A sunset' }] }],
+    model: 'uncensored-ai/uncensored-image',
+    type: 'new',
+    lora_config: { 'style-lora': 1 },
+  },
+  'uncensored-image',
+  {
+    interval: 3000,
+    maxAttempts: 60,
+    onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`),
+  }
+);
+console.log('URL:', result.result_url);
+```
 
-This SDK is written in TypeScript and includes comprehensive type definitions. All types are exported for your convenience:
+---
+
+## API Reference
+
+### `new EternalAI(config)`
+
+```typescript
+const eai = new EternalAI({
+  apiKey: 'your-api-key',
+  timeout: 30000, // optional, in ms
+});
+```
+
+### `eai.chat.send(request)`
+
+Universal method for all providers. Auto-routes based on model prefix.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `messages` | `ChatMessage[]` | Array of messages |
+| `model` | `string` | Provider/model (e.g., `openai/gpt-5.1`) |
+| `stream` | `boolean` | Enable streaming (default: `false`) |
+| `width` | `number` | Image width (Flux only) |
+| `height` | `number` | Image height (Flux only) |
+| `safety_tolerance` | `number` | 0-6 (Flux only, default: 2) |
+| `resolution` | `string` | `480P`/`720P`/`1080P` (Wan only) |
+| `duration` | `number` | Video duration in seconds (Wan only) |
+
+**Returns:** `ChatCompletionResponse` or `AsyncIterable<ChatCompletionChunk>` (if streaming)
+
+### `eai.flux.generate(request, model, pollingOptions)`
+
+Direct Flux access with polling callbacks.
+
+**Returns:** `FluxResultResponse` with `result.sample` (image URL)
+
+### `eai.wan.generate(request, model, pollingOptions)`
+
+Direct Wan access with polling callbacks.
+
+**Returns:** `WanResultResponse` with `output.results[0].url` (video URL)
+
+### `eai.uncensoredAI.generate(request, endpoint, pollingOptions)`
+
+Direct Uncensored AI access with polling callbacks.
+
+**Returns:** `UncensoredResultResponse` with `result_url`
+
+---
+
+## TypeScript
+
+All types are exported:
 
 ```typescript
 import type {
   EternalAIConfig,
-  MessageRole,
   ChatMessage,
-  ChatCompletionRequestBase,
   ChatCompletionRequest,
-  ChatCompletionStreamingRequest,
-  ChatCompletionNonStreamingRequest,
-  ChatCompletionDelta,
-  ChatCompletionChoice,
-  ChatCompletionChunk,
-  ChatCompletionMessage,
-  ChatCompletionNonStreamingChoice,
   ChatCompletionResponse,
+  ChatCompletionChunk,
 } from '@eternalai-org/sdk';
 ```
+
+---
 
 ## Error Handling
 
 ```typescript
 try {
-  const result = await eai.chat.send({
-    messages: [{ role: 'user', content: 'Hello' }],
-    model: 'openai/gpt-5.1',
-  });
+  const result = await eai.chat.send({ ... });
 } catch (error) {
-  if (error instanceof Error) {
-    console.error('Error:', error.message);
-  }
+  console.error('Error:', error.message);
 }
 ```
 
-## Browser vs Node.js vs Bun
+---
 
-This SDK works in multiple environments:
+## Environment Support
 
-- **Bun** - Full support (v1.0.0+) - Recommended for best performance
-- **Node.js** - Full support (v18+)
-- **Browser** - Requires a bundler (Webpack, Vite, etc.) that supports ESM
+- **Node.js** 18+
+- **Bun** 1.0+
+- **Browser** (with bundler)
 
-## Testing
+---
 
-This SDK includes a comprehensive test suite. To run the tests:
+## Links
 
-```bash
-# Using Bun (recommended)
-bun test
-bun run test:watch
-bun run test:coverage
-
-# Using npm
-npm test
-npm run test:watch
-npm run test:coverage
-```
-
-The test suite covers:
-- ✅ Client initialization and configuration
-- ✅ Streaming and non-streaming chat completions
-- ✅ Error handling and edge cases
-- ✅ TypeScript type definitions
-- ✅ Integration and end-to-end flows
-
-See [tests/README.md](./tests/README.md) for detailed testing documentation.
-
-## Contributing
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for development guidelines.
+- 📦 [npm](https://www.npmjs.com/package/@eternalai-org/sdk)
+- 🌐 [EternalAI Platform](https://eternalai.org/api/build)
+- 🐛 [GitHub Issues](https://github.com/eternalai-org/typescript-sdk/issues)
 
 ## License
 
-MIT - see [LICENSE](./LICENSE) file for details.
-
-## Support
-
-For issues and questions:
-- 📦 **npm Package**: [npmjs.com/package/@eternalai-org/sdk](https://www.npmjs.com/package/@eternalai-org/sdk)
-- 🌐 **Website**: [eternalai.org](https://eternalai.org)
-- 📖 **API Platform**: [eternalai.org/api/build](https://eternalai.org/api/build)
-- 🐛 **GitHub Issues**: [github.com/eternalai-org/typescript-sdk/issues](https://github.com/eternalai-org/typescript-sdk/issues)
-- 📚 **Documentation**: [github.com/eternalai-org/typescript-sdk](https://github.com/eternalai-org/typescript-sdk)
-
-## Pricing
-
-EternalAI offers competitive pricing with cashback rewards:
-- 💳 **Credit-based system** - Buy credits, use with any AI model
-- 💰 **Earn cashback** - Get rewards on every API call (up to 4.96%)
-- ♾️ **No rate limits** - Scale without restrictions
-- 🎯 **Pay as you go** - Only pay for what you use
-
-Visit [eternalai.org/api/build](https://eternalai.org/api/build) for detailed pricing.
+MIT

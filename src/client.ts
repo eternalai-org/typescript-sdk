@@ -1,4 +1,5 @@
 import { Chat } from './services/chat';
+import { Flux } from './services/flux';
 import { NanoBanana } from './services/nano-banana';
 import { Tavily } from './services/tavily';
 import { UncensoredAI } from './services/uncensored-ai';
@@ -7,6 +8,7 @@ import type { EternalAIConfig } from './types';
 
 export class EternalAI {
   public readonly chat: Chat;
+  public readonly flux: Flux;
   public readonly nanoBanana: NanoBanana;
   public readonly tavily: Tavily;
   public readonly uncensoredAI: UncensoredAI;
@@ -19,6 +21,7 @@ export class EternalAI {
     }
     this.config = config;
     this.chat = new Chat(this.config);
+    this.flux = new Flux(this.config);
     this.nanoBanana = new NanoBanana(this.config);
     this.tavily = new Tavily(this.config);
     this.uncensoredAI = new UncensoredAI(this.config);

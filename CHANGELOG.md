@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2025-12-06
+
+### Added
+- 🎨 **Flux Image Generation** - New `Flux` service for professional image generation
+  - **Text-to-Image** - Generate images from text prompts with configurable dimensions
+  - **Image-to-Image** - Transform existing images with style transfer
+  - **Multi-Image Blending** - Blend up to 2 reference images (input_image + input_image_2)
+  - Configurable `width`, `height`, and `safety_tolerance` parameters
+  - Async polling with status callbacks via `onStatusUpdate`
+- Access via `chat.send()` with `flux/flux-2-pro` model or direct `eai.flux.generate()`
+- Full TypeScript types: `FluxResultResponse`, `FluxGenerateResponse`, `PollingOptions`
+
+### Changed
+- 📚 **README Overhaul** - Completely rewritten for better developer experience
+  - Concise Quick Start with all providers
+  - Provider table for easy reference
+  - Cleaner API documentation
+- 🧪 **Test Restructuring** - Split live API tests into granular files
+  - Individual test files: `flux-t2i.live.ts`, `flux-i2i.live.ts`, `wan-i2v.live.ts`, etc.
+  - Run specific tests to save API costs
+  - New `tests/live/run-all.ts` for running by category
+
+### Fixed
+- TypeScript type inference for non-streaming chat requests
+- Proper `unknown` casting for provider-specific responses
+
 ## [0.4.0] - 2025-12-05
 
 ### Added
@@ -121,6 +147,7 @@ Access multiple AI providers through EternalAI's unified API:
 - Google Gemini
 - And more via [eternalai.org](https://eternalai.org/api/build)
 
+[0.4.2]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.2
 [0.4.0]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.3.0
 [0.2.1]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.2.1

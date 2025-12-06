@@ -1,3 +1,190 @@
+// src/services/flux.ts
+var Flux = class {
+  constructor(config) {
+    this.baseUrl = "https://open.eternalai.org/flux/v1";
+    this.config = config;
+  }
+  /**
+   * Generate image using Flux endpoint
+   * Automatically polls for results until completion
+   * @param request - Chat completion request with prompt and optional images
+   * @param model - The Flux model to use (default: flux-2-pro)
+   * @param pollingOptions - Polling options (optional, has smart defaults)
+   * @returns Final result response with generated image URL
+   * 
+   * @example Text-to-Image
+   * ```typescript
+   * const result = await flux.generate({
+   *   messages: [{ role: 'user', content: 'A futuristic city at sunset' }],
+   *   model: 'flux/flux-2-pro',
+   *   width: 1920,
+   *   height: 1080,
+   *   safety_tolerance: 2
+   * }, 'flux-2-pro');
+   * ```
+   * 
+   * @example Image-to-Image with multiple references
+   * ```typescript
+   * const result = await flux.generate({
+   *   messages: [{ 
+   *     role: 'user', 
+   *     content: [
+   *       { type: 'text', text: 'Transform this image...' },
+   *       { type: 'image_url', image_url: { url: 'https://example.com/image1.jpg' } },
+   *       { type: 'image_url', image_url: { url: 'https://example.com/image2.jpg' } }
+   *     ] 
+   *   }],
+   *   model: 'flux/flux-2-pro'
+   * }, 'flux-2-pro');
+   * ```
+   */
+  async generate(request, model = "flux-2-pro", pollingOptions = {}) {
+    const url = `${this.baseUrl}/${model}`;
+    const headers = {
+      "Content-Type": "application/json",
+      "accept": "application/json",
+      "x-key": this.config.apiKey
+    };
+    let prompt = "";
+    const imageUrls = [];
+    for (const message of request.messages) {
+      if (typeof message.content === "string") {
+        prompt = message.content;
+      } else if (Array.isArray(message.content)) {
+        for (const part of message.content) {
+          if (part.type === "text") {
+            prompt = part.text || "";
+          } else if (part.type === "image_url" && part.image_url) {
+            imageUrls.push(part.image_url.url);
+          }
+        }
+      }
+    }
+    const body = {
+      prompt,
+      width: request.width ?? 1024,
+      height: request.height ?? 1024,
+      safety_tolerance: request.safety_tolerance ?? 2
+    };
+    if (imageUrls.length > 0) {
+      body.input_image = imageUrls[0];
+    }
+    if (imageUrls.length > 1) {
+      body.input_image_2 = imageUrls[1];
+    }
+    console.log("Flux request body:", JSON.stringify(body, null, 2));
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Flux request failed with status ${response.status}: ${errorText}`);
+    }
+    const generateResponse = await response.json();
+    const pollingUrl = generateResponse.polling_url;
+    if (!pollingUrl) {
+      throw new Error("No polling_url in generate response");
+    }
+    const finalPollingOptions = {
+      interval: pollingOptions.interval || 3e3,
+      maxAttempts: pollingOptions.maxAttempts || 60,
+      onStatusUpdate: pollingOptions.onStatusUpdate
+    };
+    return this.pollResult(pollingUrl, finalPollingOptions);
+  }
+  /**
+   * Get result by polling URL
+   * @param pollingUrl - The polling URL returned from generate()
+   * @returns Result response with status and image URL
+   * 
+   * @example
+   * ```typescript
+   * const result = await flux.getResult('https://api.eu2.bfl.ai/v1/get_result?id=xxx');
+   * if (result.status === 'Ready') {
+   *   console.log('Image URL:', result.result?.sample);
+   * }
+   * ```
+   */
+  async getResult(pollingUrl) {
+    const headers = {
+      "Content-Type": "application/json",
+      "accept": "application/json",
+      "x-key": this.config.apiKey
+    };
+    const response = await fetch(pollingUrl, {
+      method: "GET",
+      headers,
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Flux getResult failed with status ${response.status}: ${errorText}`);
+    }
+    return await response.json();
+  }
+  /**
+   * Poll for result until completion or timeout
+   * @param pollingUrl - The polling URL returned from generate()
+   * @param options - Polling options (interval, maxAttempts, onStatusUpdate callback)
+   * @returns Final result response
+   * @throws Error if polling times out or request fails
+   * 
+   * @example
+   * ```typescript
+   * const finalResult = await flux.pollResult('https://api.eu2.bfl.ai/v1/get_result?id=xxx', {
+   *   interval: 3000,
+   *   maxAttempts: 60,
+   *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] Status: ${status}`)
+   * });
+   * ```
+   */
+  async pollResult(pollingUrl, options = {}) {
+    const {
+      interval = 3e3,
+      maxAttempts = 60,
+      onStatusUpdate
+    } = options;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const result = await this.getResult(pollingUrl);
+      if (onStatusUpdate) {
+        console.log("pollingUrl", pollingUrl);
+        onStatusUpdate(result.status, attempt);
+      }
+      if (result.status === "Ready") {
+        return result;
+      }
+      if (result.status === "Failed") {
+        const message = result.error || "Unknown error";
+        throw new Error(`Flux image generation failed: ${message}`);
+      }
+      if (attempt < maxAttempts) {
+        await this.sleep(interval);
+      }
+    }
+    throw new Error(`Flux polling timed out after ${maxAttempts} attempts`);
+  }
+  /**
+   * Create abort signal with timeout
+   */
+  createAbortSignal() {
+    if (this.config.timeout) {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), this.config.timeout);
+      return controller.signal;
+    }
+    return void 0;
+  }
+  /**
+   * Sleep helper for polling
+   */
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+};
+
 // src/services/nano-banana.ts
 var NanoBanana = class {
   constructor(config) {
@@ -670,6 +857,7 @@ var Wan = class {
 };
 
 // src/services/chat.ts
+var FLUX_PREFIX = "flux/";
 var NANO_BANANA_PREFIX = "nano-banana/";
 var TAVILY_PREFIX = "tavily/";
 var UNCENSORED_AI_PREFIX = "uncensored-ai/";
@@ -678,6 +866,7 @@ var Chat = class {
   constructor(config) {
     this.baseUrl = "https://open.eternalai.org/api/v1";
     this.config = config;
+    this.flux = new Flux(config);
     this.nanoBanana = new NanoBanana(config);
     this.tavily = new Tavily(config);
     this.uncensoredAI = new UncensoredAI(config);
@@ -689,6 +878,12 @@ var Chat = class {
    * @returns Object with provider type and extracted model name
    */
   parseModelName(model) {
+    if (model.startsWith(FLUX_PREFIX)) {
+      return {
+        provider: "flux",
+        modelName: model.slice(FLUX_PREFIX.length)
+      };
+    }
     if (model.startsWith(NANO_BANANA_PREFIX)) {
       return {
         provider: "nano-banana",
@@ -720,6 +915,24 @@ var Chat = class {
    */
   async send(request) {
     const { provider, modelName } = this.parseModelName(request.model);
+    if (provider === "flux") {
+      const result = await this.flux.generate(request, modelName);
+      const imageUrl = result.result?.sample || "";
+      return {
+        id: result.id || `chatcmpl-flux-${Date.now()}`,
+        object: "chat.completion",
+        created: Math.floor(Date.now() / 1e3),
+        model: request.model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: imageUrl
+          },
+          finish_reason: "stop"
+        }]
+      };
+    }
     if (provider === "nano-banana") {
       if (request.stream) {
         return this.nanoBanana.streamContent(request, modelName);
@@ -766,7 +979,7 @@ var Chat = class {
         }]
       };
     }
-    const url = `${this.baseUrl}/chat/completions`;
+    const url = `${this.baseUrl}/chat/completions?from=ts-sdk`;
     const headers = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${this.config.apiKey}`
@@ -848,6 +1061,7 @@ var EternalAI = class {
     }
     this.config = config;
     this.chat = new Chat(this.config);
+    this.flux = new Flux(this.config);
     this.nanoBanana = new NanoBanana(this.config);
     this.tavily = new Tavily(this.config);
     this.uncensoredAI = new UncensoredAI(this.config);
@@ -855,6 +1069,6 @@ var EternalAI = class {
   }
 };
 
-export { Chat, EternalAI, NanoBanana, Wan };
+export { Chat, EternalAI, Flux, NanoBanana, Wan };
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map
