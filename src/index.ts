@@ -26,3 +26,6 @@ export { NanoBanana } from './services/nano-banana';
 
 // Export wan service (for video generation)
 export { Wan } from './services/wan';
+
+// Export flux service (for image generation)
+export { Flux } from './services/flux';

@@ -6,17 +6,19 @@ import type {
   ChatCompletionChunk,
   ChatCompletionResponse,
 } from '../types';
+import { Flux } from './flux';
 import { NanoBanana } from './nano-banana';
 import { Tavily } from './tavily';
 import { UncensoredAI } from './uncensored-ai';
 import { Wan } from './wan';
 
+const FLUX_PREFIX = 'flux/';
 const NANO_BANANA_PREFIX = 'nano-banana/';
 const TAVILY_PREFIX = 'tavily/';
 const UNCENSORED_AI_PREFIX = 'uncensored-ai/';
 const WAN_PREFIX = 'wan/';
 
-type CustomProvider = 'nano-banana' | 'tavily' | 'uncensored-ai' | 'wan' | null;
+type CustomProvider = 'flux' | 'nano-banana' | 'tavily' | 'uncensored-ai' | 'wan' | null;
 
 /**
  * Chat service for sending messages and receiving responses
@@ -24,6 +26,7 @@ type CustomProvider = 'nano-banana' | 'tavily' | 'uncensored-ai' | 'wan' | null;
 export class Chat {
   private readonly config: EternalAIConfig;
   private readonly baseUrl = 'https://open.eternalai.org/api/v1';
+  private readonly flux: Flux;
   private readonly nanoBanana: NanoBanana;
   private readonly tavily: Tavily;
   private readonly uncensoredAI: UncensoredAI;
@@ -31,6 +34,7 @@ export class Chat {
 
   constructor(config: EternalAIConfig) {
     this.config = config;
+    this.flux = new Flux(config);
     this.nanoBanana = new NanoBanana(config);
     this.tavily = new Tavily(config);
     this.uncensoredAI = new UncensoredAI(config);
@@ -43,6 +47,12 @@ export class Chat {
    * @returns Object with provider type and extracted model name
    */
   private parseModelName(model: string): { provider: CustomProvider; modelName: string } {
+    if (model.startsWith(FLUX_PREFIX)) {
+      return {
+        provider: 'flux',
+        modelName: model.slice(FLUX_PREFIX.length),
+      };
+    }
     if (model.startsWith(NANO_BANANA_PREFIX)) {
       return {
         provider: 'nano-banana',
@@ -103,6 +113,30 @@ export class Chat {
     const { provider, modelName } = this.parseModelName(request.model);
 
     // Route to custom providers
+    if (provider === 'flux') {
+      // Flux doesn't support streaming, always use non-streaming
+      // generate() returns FluxResultResponse with image URL after polling
+      const result = await this.flux.generate(request as any, modelName);
+
+      // Transform FluxResultResponse to ChatCompletionResponse
+      const imageUrl = result.result?.sample || '';
+
+      return {
+        id: result.id || `chatcmpl-flux-${Date.now()}`,
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: request.model,
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: imageUrl,
+          },
+          finish_reason: 'stop',
+        }],
+      };
+    }
+
     if (provider === 'nano-banana') {
       if (request.stream) {
         return this.nanoBanana.streamContent(request, modelName);
@@ -165,7 +199,7 @@ export class Chat {
     }
 
     // Standard EternalAI API request
-    const url = `${this.baseUrl}/chat/completions`;
+    const url = `${this.baseUrl}/chat/completions?from=ts-sdk`;
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${this.config.apiKey}`,

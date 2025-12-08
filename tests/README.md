@@ -1,114 +1,57 @@
-# Test Suite
+# Tests
 
-This directory contains comprehensive test cases for the EternalAI SDK.
-
-## Test Structure
-
-```
-tests/
-├── README.md           # This file
-├── client.test.ts      # Tests for EternalAPI client initialization
-├── chat.test.ts        # Tests for Chat service (streaming & non-streaming)
-├── types.test.ts       # Tests for TypeScript type definitions
-└── integration.test.ts # Integration and end-to-end tests
-```
-
-## Running Tests
+## Unit Tests (mocked, no API calls)
 
 ```bash
-# Using Bun (recommended)
-bun test
-bun run test:watch
-bun run test:coverage
-
-# Using npm
 npm test
-npm run test:watch
-npm run test:coverage
 ```
 
-## Test Coverage
+## Live API Tests
 
-The test suite covers:
+Individual tests in `tests/live/` - run specific tests to save API costs.
 
-### Client Tests (`client.test.ts`)
-- ✅ Client initialization with valid API key
-- ✅ Error handling for missing/invalid API key
-- ✅ Optional timeout configuration
-- ✅ Property visibility and encapsulation
+### Run Single Test
 
-### Chat Service Tests (`chat.test.ts`)
-- ✅ Non-streaming chat completions
-- ✅ Streaming chat completions with Server-Sent Events
-- ✅ Request headers and authorization
-- ✅ Error handling for API failures (401, 500, etc.)
-- ✅ Network error handling
-- ✅ Timeout configuration
-- ✅ Invalid JSON handling in streams
-- ✅ Empty lines in streaming responses
+```bash
+# Chat
+npx ts-node tests/live/chat-streaming.live.ts
+npx ts-node tests/live/chat-nonstreaming.live.ts
 
-### Type Tests (`types.test.ts`)
-- ✅ All TypeScript type definitions
-- ✅ Required and optional fields
-- ✅ Message roles (system, user, assistant)
-- ✅ Request and response structures
-- ✅ Streaming and non-streaming types
+# Flux Image
+npx ts-node tests/live/flux-t2i.live.ts      # text-to-image
+npx ts-node tests/live/flux-i2i.live.ts      # image-to-image
+npx ts-node tests/live/flux-blend.live.ts    # blend 2 images
 
-### Integration Tests (`integration.test.ts`)
-- ✅ SDK exports verification
-- ✅ End-to-end flow testing
-- ✅ Type safety validation
-- ✅ Error message clarity
+# Wan Video
+npx ts-node tests/live/wan-i2v.live.ts       # image-to-video
 
-## Test Framework
+# Uncensored AI
+npx ts-node tests/live/uncensored-t2i.live.ts
+npx ts-node tests/live/uncensored-i2i.live.ts
+npx ts-node tests/live/uncensored-video.live.ts
 
-- **Framework**: [Vitest](https://vitest.dev/)
-- **Coverage**: v8 provider
-- **Environment**: Bun (recommended) or Node.js
-
-## Writing New Tests
-
-When adding new features, please:
-
-1. Add corresponding tests in the appropriate test file
-2. Maintain test coverage above 80%
-3. Follow the existing test structure and naming conventions
-4. Use descriptive test names that explain what is being tested
-5. Mock external dependencies (like `fetch`) to avoid real API calls
-
-Example test structure:
-
-```typescript
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-describe('FeatureName', () => {
-  beforeEach(() => {
-    // Setup before each test
-    vi.clearAllMocks();
-  });
-
-  describe('Specific Functionality', () => {
-    it('should behave in expected way', () => {
-      // Arrange
-      const input = 'test';
-      
-      // Act
-      const result = functionToTest(input);
-      
-      // Assert
-      expect(result).toBe('expected');
-    });
-  });
-});
+# Tavily
+npx ts-node tests/live/tavily-search.live.ts
 ```
 
-## Coverage Goals
+### Run by Category
 
-Target coverage metrics:
-- **Statements**: > 90%
-- **Branches**: > 85%
-- **Functions**: > 90%
-- **Lines**: > 90%
+```bash
+npx ts-node tests/live/run-all.ts chat
+npx ts-node tests/live/run-all.ts flux
+npx ts-node tests/live/run-all.ts wan
+npx ts-node tests/live/run-all.ts uncensored
+npx ts-node tests/live/run-all.ts tavily
+```
 
-View coverage report after running `bun run test:coverage` (or `npm run test:coverage`) in the `coverage/` directory.
+### Run All
 
+```bash
+npx ts-node tests/live/run-all.ts
+```
+
+## Environment
+
+```bash
+export ETERNALAI_API_KEY=your_api_key
+```

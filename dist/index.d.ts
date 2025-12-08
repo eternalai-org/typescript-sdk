@@ -115,6 +115,7 @@ interface ChatCompletionResponse {
 declare class Chat {
     private readonly config;
     private readonly baseUrl;
+    private readonly flux;
     private readonly nanoBanana;
     private readonly tavily;
     private readonly uncensoredAI;
@@ -152,6 +153,143 @@ declare class Chat {
      * Handle streaming response using Server-Sent Events
      */
     private handleStreamingResponse;
+}
+
+/**
+ * Flux image generation request options
+ */
+interface FluxRequestOptions {
+    /** Image width in pixels (default: 1024) */
+    width?: number;
+    /** Image height in pixels (default: 1024) */
+    height?: number;
+    /** Safety tolerance level (0-6, default: 2) */
+    safety_tolerance?: number;
+}
+/**
+ * Flux result from polling
+ */
+interface FluxResultResponse {
+    /** Request ID */
+    id: string;
+    /** Status: 'Pending', 'Running', 'Ready', 'Failed' */
+    status: 'Pending' | 'Running' | 'Ready' | 'Failed' | string;
+    /** Result data when status is Ready */
+    result?: {
+        /** Generation start time */
+        start_time?: number;
+        /** Original prompt */
+        prompt?: string;
+        /** Seed used for generation */
+        seed?: number;
+        /** Generated image URL */
+        sample?: string;
+    };
+    /** Progress information */
+    progress?: any;
+    /** Additional details */
+    details?: any;
+    /** Preview image */
+    preview?: string | null;
+    /** Error message if failed */
+    error?: string;
+}
+/**
+ * Options for polling
+ */
+interface PollingOptions$2 {
+    /** Polling interval in milliseconds (default: 3000) */
+    interval?: number;
+    /** Maximum polling attempts (default: 60) */
+    maxAttempts?: number;
+    /** Callback for status updates */
+    onStatusUpdate?: (status: string, attempt: number) => void;
+}
+/**
+ * Flux service for image generation
+ *
+ * Supported models:
+ * - flux-2-pro: Professional quality image generation
+ * - flux-2: Standard image generation
+ */
+declare class Flux {
+    private readonly config;
+    private readonly baseUrl;
+    constructor(config: EternalAIConfig);
+    /**
+     * Generate image using Flux endpoint
+     * Automatically polls for results until completion
+     * @param request - Chat completion request with prompt and optional images
+     * @param model - The Flux model to use (default: flux-2-pro)
+     * @param pollingOptions - Polling options (optional, has smart defaults)
+     * @returns Final result response with generated image URL
+     *
+     * @example Text-to-Image
+     * ```typescript
+     * const result = await flux.generate({
+     *   messages: [{ role: 'user', content: 'A futuristic city at sunset' }],
+     *   model: 'flux/flux-2-pro',
+     *   width: 1920,
+     *   height: 1080,
+     *   safety_tolerance: 2
+     * }, 'flux-2-pro');
+     * ```
+     *
+     * @example Image-to-Image with multiple references
+     * ```typescript
+     * const result = await flux.generate({
+     *   messages: [{
+     *     role: 'user',
+     *     content: [
+     *       { type: 'text', text: 'Transform this image...' },
+     *       { type: 'image_url', image_url: { url: 'https://example.com/image1.jpg' } },
+     *       { type: 'image_url', image_url: { url: 'https://example.com/image2.jpg' } }
+     *     ]
+     *   }],
+     *   model: 'flux/flux-2-pro'
+     * }, 'flux-2-pro');
+     * ```
+     */
+    generate(request: ChatCompletionRequest & FluxRequestOptions, model?: string, pollingOptions?: PollingOptions$2): Promise<FluxResultResponse>;
+    /**
+     * Get result by polling URL
+     * @param pollingUrl - The polling URL returned from generate()
+     * @returns Result response with status and image URL
+     *
+     * @example
+     * ```typescript
+     * const result = await flux.getResult('https://api.eu2.bfl.ai/v1/get_result?id=xxx');
+     * if (result.status === 'Ready') {
+     *   console.log('Image URL:', result.result?.sample);
+     * }
+     * ```
+     */
+    getResult(pollingUrl: string): Promise<FluxResultResponse>;
+    /**
+     * Poll for result until completion or timeout
+     * @param pollingUrl - The polling URL returned from generate()
+     * @param options - Polling options (interval, maxAttempts, onStatusUpdate callback)
+     * @returns Final result response
+     * @throws Error if polling times out or request fails
+     *
+     * @example
+     * ```typescript
+     * const finalResult = await flux.pollResult('https://api.eu2.bfl.ai/v1/get_result?id=xxx', {
+     *   interval: 3000,
+     *   maxAttempts: 60,
+     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] Status: ${status}`)
+     * });
+     * ```
+     */
+    pollResult(pollingUrl: string, options?: PollingOptions$2): Promise<FluxResultResponse>;
+    /**
+     * Create abort signal with timeout
+     */
+    private createAbortSignal;
+    /**
+     * Sleep helper for polling
+     */
+    private sleep;
 }
 
 /**
@@ -510,6 +648,7 @@ declare class Wan {
 
 declare class EternalAI {
     readonly chat: Chat;
+    readonly flux: Flux;
     readonly nanoBanana: NanoBanana;
     readonly tavily: Tavily;
     readonly uncensoredAI: UncensoredAI;
@@ -518,4 +657,4 @@ declare class EternalAI {
     constructor(config: EternalAIConfig);
 }
 
-export { Chat, type ChatCompletionChoice, type ChatCompletionChunk, type ChatCompletionDelta, type ChatCompletionMessage, type ChatCompletionNonStreamingChoice, type ChatCompletionNonStreamingRequest, type ChatCompletionRequest, type ChatCompletionRequestBase, type ChatCompletionResponse, type ChatCompletionStreamingRequest, type ChatMessage, EternalAI, type EternalAIConfig, type MessageRole, NanoBanana, Wan };
+export { Chat, type ChatCompletionChoice, type ChatCompletionChunk, type ChatCompletionDelta, type ChatCompletionMessage, type ChatCompletionNonStreamingChoice, type ChatCompletionNonStreamingRequest, type ChatCompletionRequest, type ChatCompletionRequestBase, type ChatCompletionResponse, type ChatCompletionStreamingRequest, type ChatMessage, EternalAI, type EternalAIConfig, Flux, type MessageRole, NanoBanana, Wan };
