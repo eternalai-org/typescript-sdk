@@ -61,7 +61,7 @@ describe('Chat Service', () => {
             expect(result).toEqual(mockResponse);
             expect(mockFetch).toHaveBeenCalledTimes(1);
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://open.eternalai.org/api/v1/chat/completions',
+                'https://open.eternalai.org/api/v1/chat/completions?from=ts-sdk',
                 expect.objectContaining({
                     method: 'POST',
                     headers: {
@@ -69,6 +69,7 @@ describe('Chat Service', () => {
                         Authorization: 'Bearer test-api-key',
                     },
                     body: JSON.stringify(request),
+                    signal: undefined,
                 })
             );
         });
