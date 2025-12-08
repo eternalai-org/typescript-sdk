@@ -1,7 +1,7 @@
 /**
  * Shared utilities for live API tests
  */
-import { EternalAI } from '../../src/index';
+import { EternalAI } from '../../src/index.ts';
 
 export interface TestResult {
     name: string;

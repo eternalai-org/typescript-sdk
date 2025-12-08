@@ -12,11 +12,28 @@ export interface EternalAIConfig {
 export type MessageRole = 'system' | 'user' | 'assistant';
 
 /**
+ * Content part types for multimodal messages
+ */
+export interface TextContentPart {
+  type: 'text';
+  text: string;
+}
+
+export interface ImageUrlContentPart {
+  type: 'image_url';
+  image_url: {
+    url: string;
+  };
+}
+
+export type ContentPart = TextContentPart | ImageUrlContentPart;
+
+/**
  * Chat message structure
  */
 export interface ChatMessage {
   role: MessageRole;
-  content: string;
+  content: string | ContentPart[];
 }
 
 /**

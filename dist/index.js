@@ -185,6 +185,32 @@ var Flux = class {
   }
 };
 
+// src/utils/image.ts
+async function uploadImageToStorage(base64Data, mimeType) {
+  const uploadUrl = "https://api.eternalai.org/api/agent/upload-image?admin_key=eai2024";
+  const binaryData = Buffer.from(base64Data, "base64");
+  const formData = new FormData();
+  const blob = new Blob([binaryData], { type: mimeType });
+  const filename = `${Date.now()}.${mimeType.split("/")[1] || "png"}`;
+  formData.append("file", blob, filename);
+  const response = await fetch(uploadUrl, {
+    method: "POST",
+    body: formData
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
+  }
+  const responseText = await response.text();
+  let result;
+  try {
+    result = JSON.parse(responseText);
+  } catch (e) {
+    throw new Error(`Failed to parse upload response: ${responseText}`);
+  }
+  return result.data || "";
+}
+
 // src/services/nano-banana.ts
 var NanoBanana = class {
   constructor(config) {
@@ -203,7 +229,7 @@ var NanoBanana = class {
       "Content-Type": "application/json",
       "x-goog-api-key": this.config.apiKey
     };
-    const geminiBody = this.transformToGeminiFormat(request);
+    const geminiBody = await this.transformToGeminiFormat(request);
     const response = await fetch(url, {
       method: "POST",
       headers,
@@ -215,7 +241,7 @@ var NanoBanana = class {
       throw new Error(`NanoBanana request failed with status ${response.status}: ${errorText}`);
     }
     const geminiResponse = await response.json();
-    return this.transformToOpenAIFormat(geminiResponse, geminiModel);
+    return await this.transformToOpenAIFormat(geminiResponse, geminiModel);
   }
   /**
    * Generate image content using nano-banana endpoint
@@ -264,12 +290,12 @@ var NanoBanana = class {
    * @returns Async iterable of chat completion chunks
    */
   async *streamContent(request, geminiModel = "gemini-2.5-flash-image") {
-    const url = `${this.baseUrl}/${geminiModel}:streamGenerateContent?alt=sse`;
+    const url = `${this.baseUrl}/${geminiModel}:generateContent?alt=sse`;
     const headers = {
       "Content-Type": "application/json",
       "x-goog-api-key": this.config.apiKey
     };
-    const geminiBody = this.transformToGeminiFormat(request);
+    const geminiBody = await this.transformToGeminiFormat(request);
     const response = await fetch(url, {
       method: "POST",
       headers,
@@ -287,6 +313,7 @@ var NanoBanana = class {
     const decoder = new TextDecoder();
     let buffer = "";
     const chunkId = `chatcmpl-${Date.now()}`;
+    let streamChunkCount = 0;
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -303,7 +330,20 @@ var NanoBanana = class {
             const data = trimmedLine.slice(6);
             try {
               const geminiChunk = JSON.parse(data);
-              const content = geminiChunk.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              streamChunkCount++;
+              let content = "";
+              const parts = geminiChunk.candidates?.[0]?.content?.parts || [];
+              for (const part of parts) {
+                if (part.text) {
+                  content += part.text;
+                } else if (part.inlineData) {
+                  const imageUrl = await uploadImageToStorage(
+                    part.inlineData.data,
+                    part.inlineData.mimeType
+                  );
+                  content += imageUrl;
+                }
+              }
               const finishReason = geminiChunk.candidates?.[0]?.finishReason;
               const chunk = {
                 id: chunkId,
@@ -329,7 +369,7 @@ var NanoBanana = class {
   /**
    * Transform OpenAI format request to Gemini format
    */
-  transformToGeminiFormat(request) {
+  async transformToGeminiFormat(request) {
     const contents = [];
     for (const message of request.messages) {
       let role = "user";
@@ -338,19 +378,60 @@ var NanoBanana = class {
       } else if (message.role === "system") {
         role = "user";
       }
+      const parts = [];
+      if (typeof message.content === "string") {
+        parts.push({ text: message.content });
+      } else if (Array.isArray(message.content)) {
+        for (const part of message.content) {
+          if (part.type === "text") {
+            parts.push({ text: part.text });
+          } else if (part.type === "image_url") {
+            const imageUrl = part.image_url.url;
+            const { mimeType, data } = await this.fetchImageAsBase64(imageUrl);
+            parts.push({
+              inline_data: {
+                mime_type: mimeType,
+                data
+              }
+            });
+          }
+        }
+      }
       contents.push({
         role,
-        parts: [{ text: message.content }]
+        parts
       });
     }
     return { contents };
   }
   /**
-   * Transform Gemini response to OpenAI format
+   * Fetch image from URL and convert to base64
    */
-  transformToOpenAIFormat(geminiResponse, model) {
+  async fetchImageAsBase64(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image from ${url}: ${response.status}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString("base64");
+    const mimeType = response.headers.get("content-type") || "image/jpeg";
+    return { mimeType, data: base64 };
+  }
+  async transformToOpenAIFormat(geminiResponse, model) {
     const candidate = geminiResponse.candidates?.[0];
-    const content = candidate?.content?.parts?.map((p) => p.text || "").join("") || "";
+    let content = "";
+    for (const part of candidate?.content?.parts || []) {
+      if (part.text) {
+        content += part.text;
+      } else if (part.inlineData) {
+        const imageUrl = await uploadImageToStorage(
+          part.inlineData.data,
+          part.inlineData.mimeType
+        );
+        content += imageUrl;
+      }
+    }
     return {
       id: `chatcmpl-${Date.now()}`,
       object: "chat.completion",

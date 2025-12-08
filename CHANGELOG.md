@@ -5,7 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2025-12-08
+
+### Fixed
+- 🖼️ **Nano Banana Image Upload** - Fixed image URL generation for Nano Banana models
+  - Fixed `uploadImageToStorage` to correctly parse API response (`data` field instead of `url`)
+  - Images now return public CDN URLs instead of empty strings
+  - Both streaming and non-streaming modes now properly upload and return image URLs
+- 🌊 **Streaming Image Support** - Enhanced streaming to handle image data
+  - `streamContent` now checks all parts for both text and `inlineData`
+  - Images in streaming responses are automatically uploaded to storage
+  - Image URLs are included in streaming chunks alongside text content
+
+### Changed
+- Removed debug logging from production code for cleaner output
+- Improved error handling in image upload utility
+
 ## [0.4.2] - 2025-12-06
+
 
 ### Added
 - 🎨 **Flux Image Generation** - New `Flux` service for professional image generation
@@ -147,6 +164,7 @@ Access multiple AI providers through EternalAI's unified API:
 - Google Gemini
 - And more via [eternalai.org](https://eternalai.org/api/build)
 
+[0.4.3]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.3
 [0.4.2]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.2
 [0.4.0]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.3.0

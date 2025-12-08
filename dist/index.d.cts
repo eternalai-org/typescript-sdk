@@ -10,11 +10,25 @@ interface EternalAIConfig {
  */
 type MessageRole = 'system' | 'user' | 'assistant';
 /**
+ * Content part types for multimodal messages
+ */
+interface TextContentPart {
+    type: 'text';
+    text: string;
+}
+interface ImageUrlContentPart {
+    type: 'image_url';
+    image_url: {
+        url: string;
+    };
+}
+type ContentPart = TextContentPart | ImageUrlContentPart;
+/**
  * Chat message structure
  */
 interface ChatMessage {
     role: MessageRole;
-    content: string;
+    content: string | ContentPart[];
 }
 /**
  * Base chat completion request
@@ -329,8 +343,9 @@ declare class NanoBanana {
      */
     private transformToGeminiFormat;
     /**
-     * Transform Gemini response to OpenAI format
+     * Fetch image from URL and convert to base64
      */
+    private fetchImageAsBase64;
     private transformToOpenAIFormat;
     /**
      * Create abort signal with timeout

@@ -4,6 +4,7 @@ import type {
     ChatCompletionChunk,
     ChatCompletionResponse,
 } from '../types';
+import { uploadImageToStorage } from '../utils/image';
 
 /**
  * Response from Gemini-style API
@@ -63,7 +64,7 @@ export class NanoBanana {
         };
 
         // Transform OpenAI format to Gemini format
-        const geminiBody = this.transformToGeminiFormat(request);
+        const geminiBody = await this.transformToGeminiFormat(request);
 
         const response = await fetch(url, {
             method: 'POST',
@@ -80,7 +81,7 @@ export class NanoBanana {
         const geminiResponse = (await response.json()) as GeminiResponse;
 
         // Transform Gemini response back to OpenAI format
-        return this.transformToOpenAIFormat(geminiResponse, geminiModel);
+        return await this.transformToOpenAIFormat(geminiResponse, geminiModel);
     }
 
     /**
@@ -145,7 +146,7 @@ export class NanoBanana {
         request: ChatCompletionRequest,
         geminiModel: string = 'gemini-2.5-flash-image'
     ): AsyncIterable<ChatCompletionChunk> {
-        const url = `${this.baseUrl}/${geminiModel}:streamGenerateContent?alt=sse`;
+        const url = `${this.baseUrl}/${geminiModel}:generateContent?alt=sse`;
 
         const headers = {
             'Content-Type': 'application/json',
@@ -153,7 +154,7 @@ export class NanoBanana {
         };
 
         // Transform OpenAI format to Gemini format
-        const geminiBody = this.transformToGeminiFormat(request);
+        const geminiBody = await this.transformToGeminiFormat(request);
 
         const response = await fetch(url, {
             method: 'POST',
@@ -175,6 +176,7 @@ export class NanoBanana {
         const decoder = new TextDecoder();
         let buffer = '';
         const chunkId = `chatcmpl-${Date.now()}`;
+        let streamChunkCount = 0;
 
         try {
             while (true) {
@@ -195,9 +197,25 @@ export class NanoBanana {
                         const data = trimmedLine.slice(6);
                         try {
                             const geminiChunk = JSON.parse(data) as GeminiResponse;
+                            streamChunkCount++;
 
-                            // Transform to OpenAI chunk format
-                            const content = geminiChunk.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                            // Check all parts for text and image data
+                            let content = '';
+                            const parts = geminiChunk.candidates?.[0]?.content?.parts || [];
+
+                            for (const part of parts) {
+                                if (part.text) {
+                                    content += part.text;
+                                } else if (part.inlineData) {
+                                    // Upload image and add URL to content
+                                    const imageUrl = await uploadImageToStorage(
+                                        part.inlineData.data,
+                                        part.inlineData.mimeType
+                                    );
+                                    content += imageUrl;
+                                }
+                            }
+
                             const finishReason = geminiChunk.candidates?.[0]?.finishReason;
 
                             const chunk: ChatCompletionChunk = {
@@ -227,8 +245,8 @@ export class NanoBanana {
     /**
      * Transform OpenAI format request to Gemini format
      */
-    private transformToGeminiFormat(request: ChatCompletionRequest): object {
-        const contents: { role: string; parts: { text: string }[] }[] = [];
+    private async transformToGeminiFormat(request: ChatCompletionRequest): Promise<object> {
+        const contents: { role: string; parts: any[] }[] = [];
 
         for (const message of request.messages) {
             // Map OpenAI roles to Gemini roles
@@ -241,9 +259,33 @@ export class NanoBanana {
                 role = 'user';
             }
 
+            const parts: any[] = [];
+
+            // Handle content as string or array
+            if (typeof message.content === 'string') {
+                parts.push({ text: message.content });
+            } else if (Array.isArray(message.content)) {
+                // Handle multimodal content (text + images)
+                for (const part of message.content) {
+                    if (part.type === 'text') {
+                        parts.push({ text: part.text });
+                    } else if (part.type === 'image_url') {
+                        // Convert image URL to base64 inline_data
+                        const imageUrl = part.image_url.url;
+                        const { mimeType, data } = await this.fetchImageAsBase64(imageUrl);
+                        parts.push({
+                            inline_data: {
+                                mime_type: mimeType,
+                                data: data,
+                            }
+                        });
+                    }
+                }
+            }
+
             contents.push({
                 role,
-                parts: [{ text: message.content }],
+                parts,
             });
         }
 
@@ -251,14 +293,44 @@ export class NanoBanana {
     }
 
     /**
-     * Transform Gemini response to OpenAI format
+     * Fetch image from URL and convert to base64
      */
-    private transformToOpenAIFormat(
+    private async fetchImageAsBase64(url: string): Promise<{ mimeType: string; data: string }> {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image from ${url}: ${response.status}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64 = buffer.toString('base64');
+
+        // Get mime type from response headers or default to image/jpeg
+        const mimeType = response.headers.get('content-type') || 'image/jpeg';
+
+        return { mimeType, data: base64 };
+    }
+
+    private async transformToOpenAIFormat(
         geminiResponse: GeminiResponse,
         model: string
-    ): ChatCompletionResponse {
+    ): Promise<ChatCompletionResponse> {
         const candidate = geminiResponse.candidates?.[0];
-        const content = candidate?.content?.parts?.map(p => p.text || '').join('') || '';
+
+        // Check if response contains image data
+        let content = '';
+        for (const part of candidate?.content?.parts || []) {
+            if (part.text) {
+                content += part.text;
+            } else if (part.inlineData) {
+                // Upload base64 image to EternalAI storage and get URL
+                const imageUrl = await uploadImageToStorage(
+                    part.inlineData.data,
+                    part.inlineData.mimeType
+                );
+                content += imageUrl;
+            }
+        }
 
         return {
             id: `chatcmpl-${Date.now()}`,
@@ -280,6 +352,8 @@ export class NanoBanana {
             } : undefined,
         };
     }
+
+
 
     /**
      * Create abort signal with timeout
