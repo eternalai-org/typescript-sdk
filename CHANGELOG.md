@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2025-12-09
+
+### Fixed
+- 🌊 **Wan Request** - Fixed request wan functionality
+  - Improved request handling for Wan video generation service
+  - Enhanced error handling and response processing
+
 ## [0.4.3] - 2025-12-08
 
 ### Fixed
@@ -164,6 +171,7 @@ Access multiple AI providers through EternalAI's unified API:
 - Google Gemini
 - And more via [eternalai.org](https://eternalai.org/api/build)
 
+[0.4.4]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.4
 [0.4.3]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.3
 [0.4.2]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.2
 [0.4.0]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.0

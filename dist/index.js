@@ -792,7 +792,7 @@ var Wan = class {
     const url = `${this.baseUrl}/video-synthesis`;
     const headers = {
       "Content-Type": "application/json",
-      "X-DashScope-Async": "enable",
+      // 'X-DashScope-Async': 'enable',
       "Authorization": `Bearer ${this.config.apiKey}`
     };
     let prompt = "";
