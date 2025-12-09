@@ -555,6 +555,12 @@ interface WanResultResponse {
     output?: {
         task_id: string;
         task_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+        submit_time?: string;
+        scheduled_time?: string;
+        end_time?: string;
+        orig_prompt?: string;
+        actual_prompt?: string;
+        video_url?: string;
         task_metrics?: {
             TOTAL: number;
             SUCCEEDED: number;
@@ -565,6 +571,11 @@ interface WanResultResponse {
         }>;
         code?: string;
         message?: string;
+    };
+    usage?: {
+        duration: number;
+        video_count: number;
+        SR: number;
     };
     request_id?: string;
 }
@@ -588,6 +599,7 @@ interface PollingOptions {
 declare class Wan {
     private readonly config;
     private readonly baseUrl;
+    private readonly tasksBaseUrl;
     constructor(config: EternalAIConfig);
     /**
      * Generate video from image using Wan endpoint

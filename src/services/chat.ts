@@ -177,10 +177,14 @@ export class Chat {
     if (provider === 'wan') {
       // Wan doesn't support streaming, always use non-streaming
       // generate() automatically polls and returns WanResultResponse
-      const result = await this.wan.generate(request, modelName);
+      const result = await this.wan.generate(request, modelName, {
+        onStatusUpdate: (status) => {
+          console.log('Wan status update:', status);
+        },
+      });
 
-      // Transform WanResultResponse to ChatCompletionResponse
-      const videoUrl = result.output?.results?.[0]?.url || '';
+      // video_url is directly in output, or fallback to results[0].url for backward compatibility
+      const videoUrl = result.output?.video_url || result.output?.results?.[0]?.url || '';
 
       return {
         id: result.request_id || `chatcmpl-wan-${Date.now()}`,

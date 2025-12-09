@@ -756,6 +756,7 @@ var UncensoredAI = class {
 var Wan = class {
   constructor(config) {
     this.baseUrl = "https://open.eternalai.org/wan/api/v1/services/aigc/video-generation";
+    this.tasksBaseUrl = "https://open.eternalai.org/wan/api/v1/tasks";
     this.config = config;
   }
   /**
@@ -792,7 +793,8 @@ var Wan = class {
     const url = `${this.baseUrl}/video-synthesis`;
     const headers = {
       "Content-Type": "application/json",
-      // 'X-DashScope-Async': 'enable',
+      "X-DashScope-Async": "enable",
+      // Enable this only for server-side usage
       "Authorization": `Bearer ${this.config.apiKey}`
     };
     let prompt = "";
@@ -860,7 +862,7 @@ var Wan = class {
    * ```
    */
   async getResult(taskId) {
-    const url = `${this.baseUrl}/video-synthesis/${encodeURIComponent(taskId)}`;
+    const url = `${this.tasksBaseUrl}/${encodeURIComponent(taskId)}`;
     const headers = {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${this.config.apiKey}`
@@ -901,6 +903,7 @@ var Wan = class {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const result = await this.getResult(taskId);
       const status = result.output?.task_status || "UNKNOWN";
+      console.log("Wan result:", result);
       if (onStatusUpdate) {
         console.log("taskId", taskId);
         onStatusUpdate(status, attempt);
@@ -1043,8 +1046,12 @@ var Chat = class {
       };
     }
     if (provider === "wan") {
-      const result = await this.wan.generate(request, modelName);
-      const videoUrl = result.output?.results?.[0]?.url || "";
+      const result = await this.wan.generate(request, modelName, {
+        onStatusUpdate: (status) => {
+          console.log("Wan status update:", status);
+        }
+      });
+      const videoUrl = result.output?.video_url || result.output?.results?.[0]?.url || "";
       return {
         id: result.request_id || `chatcmpl-wan-${Date.now()}`,
         object: "chat.completion",

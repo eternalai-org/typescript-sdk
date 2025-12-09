@@ -72,6 +72,12 @@ export interface WanResultResponse {
     output?: {
         task_id: string;
         task_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+        submit_time?: string;
+        scheduled_time?: string;
+        end_time?: string;
+        orig_prompt?: string;
+        actual_prompt?: string;
+        video_url?: string;
         task_metrics?: {
             TOTAL: number;
             SUCCEEDED: number;
@@ -82,6 +88,11 @@ export interface WanResultResponse {
         }>;
         code?: string;
         message?: string;
+    };
+    usage?: {
+        duration: number;
+        video_count: number;
+        SR: number;
     };
     request_id?: string;
 }
@@ -107,6 +118,7 @@ export interface PollingOptions {
 export class Wan {
     private readonly config: EternalAIConfig;
     private readonly baseUrl = 'https://open.eternalai.org/wan/api/v1/services/aigc/video-generation';
+    private readonly tasksBaseUrl = 'https://open.eternalai.org/wan/api/v1/tasks';
 
     constructor(config: EternalAIConfig) {
         this.config = config;
@@ -149,9 +161,13 @@ export class Wan {
     ): Promise<WanResultResponse> {
         const url = `${this.baseUrl}/video-synthesis`;
 
+        // TODO: Backend proxy (open.eternalai.org) should handle async mode internally
+        // and perform polling server-side, then return final result to client.
+        // Current issue: API returns "current user api does not support synchronous calls"
+        // but enabling async header breaks browser clients due to polling requirements.
         const headers = {
             'Content-Type': 'application/json',
-            // 'X-DashScope-Async': 'enable',
+            'X-DashScope-Async': 'enable', // Enable this only for server-side usage
             'Authorization': `Bearer ${this.config.apiKey}`,
         };
 
@@ -234,7 +250,8 @@ export class Wan {
      * ```
      */
     async getResult(taskId: string): Promise<WanResultResponse> {
-        const url = `${this.baseUrl}/video-synthesis/${encodeURIComponent(taskId)}`;
+        // DashScope uses /api/v1/tasks/{task_id} for checking task status
+        const url = `${this.tasksBaseUrl}/${encodeURIComponent(taskId)}`;
 
         const headers = {
             'Content-Type': 'application/json',

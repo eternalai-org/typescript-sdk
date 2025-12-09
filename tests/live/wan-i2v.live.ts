@@ -14,8 +14,8 @@ async function testWanI2V(): Promise<TestResult> {
             messages: [{
                 role: 'user',
                 content: [
-                    { type: 'text', text: 'Animate this character with dynamic motion' },
-                    { type: 'image_url', image_url: { url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e73f1f4d-16ae-46bf-8c98-970f9d95e570/original=true,quality=90/29227RGZ1J118M7X9TAAJG5MB0.jpeg' } }
+                    { type: 'text', text: 'The dad and son in a boat on the ocean' },
+                    { type: 'image_url', image_url: { url: 'https://cdn.eternalai.org/agents/1765262355579_1765262355.png' } }
                 ]
             }],
             model: 'wan/wan2.5-i2v-preview',

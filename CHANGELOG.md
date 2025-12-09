@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2025-12-09
+
+### Fixed
+- 🎬 **Wan Video Generation API** - Fixed critical issues with WAN service
+  - Enabled async mode header (`X-DashScope-Async: enable`) required by API
+  - Fixed task polling endpoint to use correct DashScope path (`/api/v1/tasks/{task_id}`)
+  - Updated `WanResultResponse` type to match actual API response format
+  - Fixed `video_url` extraction from response (`output.video_url`)
+  - Added new response fields: `submit_time`, `scheduled_time`, `end_time`, `orig_prompt`, `actual_prompt`, `usage`
+
 ## [0.4.4] - 2025-12-09
 
 ### Fixed
@@ -171,6 +181,7 @@ Access multiple AI providers through EternalAI's unified API:
 - Google Gemini
 - And more via [eternalai.org](https://eternalai.org/api/build)
 
+[0.4.5]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.5
 [0.4.4]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.4
 [0.4.3]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.3
 [0.4.2]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.2
