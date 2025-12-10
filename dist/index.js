@@ -903,7 +903,6 @@ var Wan = class {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const result = await this.getResult(taskId);
       const status = result.output?.task_status || "UNKNOWN";
-      console.log("Wan result:", result);
       if (onStatusUpdate) {
         console.log("taskId", taskId);
         onStatusUpdate(status, attempt);

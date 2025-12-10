@@ -109,7 +109,9 @@ const edited = await eai.chat.send({
 ### Video Generation
 
 ```typescript
-// Wan - Image-to-Video
+// Wan - Image-to-Video (via chat.send - auto polls)
+// ⚠️ Note: This can take 5-10 minutes as it waits for video generation to complete.
+// For browser apps, consider using wan.generate() + getResult() for manual polling with UI updates.
 const wanVideo = await eai.chat.send({
   messages: [{
     role: 'user',
@@ -120,9 +122,30 @@ const wanVideo = await eai.chat.send({
   }],
   model: 'wan/wan2.5-i2v-preview',
   resolution: '480P',
-  duration: 10,
+  duration: 5,
 });
 console.log('Video URL:', wanVideo.choices[0].message.content);
+
+// Wan - Direct usage (manual polling - recommended for browser)
+const task = await eai.wan.generate({
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Animate this character' },
+      { type: 'image_url', image_url: { url: 'https://example.com/image.png' } }
+    ]
+  }],
+  model: 'wan/wan2.5-i2v-preview',
+  resolution: '480P',
+  duration: 5,
+});
+
+// Get task_id and poll manually (good for UI progress updates)
+const taskId = task.output?.task_id;
+const result = await eai.wan.getResult(taskId);
+if (result.output?.task_status === 'SUCCEEDED') {
+  console.log('Video URL:', result.output.video_url);
+}
 
 // Uncensored AI - Video generation
 const uncensoredVideo = await eai.chat.send({
@@ -195,30 +218,43 @@ const result = await eai.flux.generate(
 console.log('URL:', result.result?.sample);
 ```
 
-### Wan with Polling Callbacks
+### Wan - Manual Polling (Recommended for Browser)
 
 ```typescript
-const result = await eai.wan.generate(
+// Step 1: Start generation - returns immediately with task_id
+const task = await eai.wan.generate(
   {
     messages: [{
       role: 'user',
       content: [
-        { type: 'text', text: 'Animate...' },
+        { type: 'text', text: 'Animate this character...' },
         { type: 'image_url', image_url: { url: 'https://...' } }
       ]
     }],
     model: 'wan/wan2.5-i2v-preview',
     resolution: '480P',
-    duration: 10,
-  },
-  'wan2.5-i2v-preview',
-  {
-    interval: 5000,
-    maxAttempts: 120,
-    onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`),
+    duration: 5,
   }
 );
-console.log('URL:', result.output?.results?.[0]?.url);
+console.log('Task started:', task.output?.task_id);
+
+// Step 2a: Poll manually (good for custom UI updates)
+const taskId = task.output?.task_id;
+let result = await eai.wan.getResult(taskId);
+while (result.output?.task_status === 'RUNNING' || result.output?.task_status === 'PENDING') {
+  await new Promise(r => setTimeout(r, 5000)); // wait 5s
+  result = await eai.wan.getResult(taskId);
+  console.log('Status:', result.output?.task_status);
+}
+console.log('Video URL:', result.output?.video_url);
+
+// Step 2b: Or use pollResult for auto-polling with callbacks
+const finalResult = await eai.wan.pollResult(taskId, {
+  interval: 5000,
+  maxAttempts: 120,
+  onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`),
+});
+console.log('Video URL:', finalResult.output?.video_url);
 ```
 
 ### Uncensored AI with Options
@@ -277,11 +313,23 @@ Direct Flux access with polling callbacks.
 
 **Returns:** `FluxResultResponse` with `result.sample` (image URL)
 
-### `eai.wan.generate(request, model, pollingOptions)`
+### `eai.wan.generate(request)`
 
-Direct Wan access with polling callbacks.
+Start video generation. Returns immediately with task_id.
 
-**Returns:** `WanResultResponse` with `output.results[0].url` (video URL)
+**Returns:** `WanTaskResponse` with `output.task_id`
+
+### `eai.wan.getResult(taskId)`
+
+Get current task status and result.
+
+**Returns:** `WanResultResponse` with `output.task_status` and `output.video_url`
+
+### `eai.wan.pollResult(taskId, pollingOptions)`
+
+Auto-poll until completion with callbacks.
+
+**Returns:** `WanResultResponse` with `output.video_url` (video URL)
 
 ### `eai.uncensoredAI.generate(request, endpoint, pollingOptions)`
 

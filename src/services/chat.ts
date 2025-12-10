@@ -176,9 +176,17 @@ export class Chat {
 
     if (provider === 'wan') {
       // Wan doesn't support streaming, always use non-streaming
-      // generate() automatically polls and returns WanResultResponse
-      const result = await this.wan.generate(request, modelName, {
-        onStatusUpdate: (status) => {
+      // generate() returns task_id, then pollResult() gets the video
+      const task = await this.wan.generate(request);
+      const taskId = task.output?.task_id;
+
+      if (!taskId) {
+        throw new Error('No task_id returned from Wan generate');
+      }
+
+      // Poll for result with status updates
+      const result = await this.wan.pollResult(taskId, {
+        onStatusUpdate: (status: string) => {
           console.log('Wan status update:', status);
         },
       });

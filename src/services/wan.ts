@@ -126,15 +126,14 @@ export class Wan {
 
     /**
      * Generate video from image using Wan endpoint
-     * Automatically polls for results until completion
-     * @param request - Chat completion request with prompt and optional image URL
-     * @param model - The Wan model to use (default: wan2.5-i2v-preview)
-     * @param pollingOptions - Polling options (optional, has smart defaults)
-     * @returns Final result response with generated video URL
+     * Returns task_id immediately - use getResult() to poll for completion
+     * @param request - Chat completion request with prompt, image URL, and model
+     * @returns Task response with task_id for polling
      * 
      * @example
      * ```typescript
-     * const result = await wan.generate({
+     * // Start generation
+     * const task = await wan.generate({
      *   messages: [{ 
      *     role: 'user', 
      *     content: [
@@ -143,33 +142,29 @@ export class Wan {
      *     ] 
      *   }],
      *   model: 'wan/wan2.5-i2v-preview',
-     *   resolution: '480P',
-     *   prompt_extend: true,
-     *   duration: 10,
-     *   audio: true
-     * }, 'wan2.5-i2v-preview', {
-     *   interval: 5000,
-     *   maxAttempts: 120,
-     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+     *   resolution: '480P'
      * });
+     * 
+     * // Get task_id and poll manually
+     * const taskId = task.output?.task_id;
+     * const result = await wan.getResult(taskId);
      * ```
      */
     async generate(
-        request: ChatCompletionRequest & WanRequestOptions,
-        model: string = 'wan2.5-i2v-preview',
-        pollingOptions: PollingOptions = {}
-    ): Promise<WanResultResponse> {
+        request: ChatCompletionRequest & WanRequestOptions
+    ): Promise<WanTaskResponse> {
         const url = `${this.baseUrl}/video-synthesis`;
 
-        // TODO: Backend proxy (open.eternalai.org) should handle async mode internally
-        // and perform polling server-side, then return final result to client.
-        // Current issue: API returns "current user api does not support synchronous calls"
-        // but enabling async header breaks browser clients due to polling requirements.
         const headers = {
             'Content-Type': 'application/json',
-            'X-DashScope-Async': 'enable', // Enable this only for server-side usage
+            'X-DashScope-Async': 'enable',
             'Authorization': `Bearer ${this.config.apiKey}`,
         };
+
+        // Extract model name (strip 'wan/' prefix if present)
+        const model = request.model.startsWith('wan/')
+            ? request.model.slice(4)
+            : request.model;
 
         // Extract prompt and image URL from messages
         let prompt = '';
@@ -204,8 +199,6 @@ export class Wan {
             },
         };
 
-        console.log('Wan request body:', JSON.stringify(body, null, 2));
-
         const response = await fetch(url, {
             method: 'POST',
             headers,
@@ -220,20 +213,12 @@ export class Wan {
 
         const taskResponse = (await response.json()) as WanTaskResponse;
 
-        const taskId = taskResponse.output?.task_id;
-
-        if (!taskId) {
+        if (!taskResponse.output?.task_id) {
             throw new Error('No task_id in generate response');
         }
 
-        // Auto-poll for result with smart defaults
-        const finalPollingOptions: PollingOptions = {
-            interval: pollingOptions.interval || 5000,
-            maxAttempts: pollingOptions.maxAttempts || 120,
-            onStatusUpdate: pollingOptions.onStatusUpdate,
-        };
-
-        return this.pollResult(taskId, finalPollingOptions);
+        // Return task response immediately - user calls getResult() to poll
+        return taskResponse;
     }
 
     /**
