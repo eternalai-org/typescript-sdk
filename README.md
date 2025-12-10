@@ -257,24 +257,31 @@ const finalResult = await eai.wan.pollResult(taskId, {
 console.log('Video URL:', finalResult.output?.video_url);
 ```
 
-### Uncensored AI with Options
+### Uncensored AI - Manual Polling (Recommended for Browser)
 
 ```typescript
-const result = await eai.uncensoredAI.generate(
-  {
-    messages: [{ role: 'user', content: [{ type: 'text', text: 'A sunset' }] }],
-    model: 'uncensored-ai/uncensored-image',
-    type: 'new',
-    lora_config: { 'style-lora': 1 },
-  },
-  'uncensored-image',
-  {
-    interval: 3000,
-    maxAttempts: 60,
-    onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`),
-  }
-);
+// Step 1: Start generation - returns immediately with request_id
+const task = await eai.uncensoredAI.generate({
+  messages: [{ role: 'user', content: [{ type: 'text', text: 'A sunset' }] }],
+  model: 'uncensored-ai/uncensored-image',
+  type: 'new',
+  lora_config: { 'style-lora': 1 },
+});
+console.log('Task started:', task.request_id);
+
+// Step 2: Poll for result
+const result = await eai.uncensoredAI.pollResult(task.request_id, 'uncensored-image', {
+  interval: 3000,
+  maxAttempts: 60,
+  onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`),
+});
 console.log('URL:', result.result_url);
+
+// Or check status manually
+const status = await eai.uncensoredAI.getResult(task.request_id, 'uncensored-image');
+if (status.status === 'success') {
+  console.log('URL:', status.result_url);
+}
 ```
 
 ---
@@ -331,9 +338,21 @@ Auto-poll until completion with callbacks.
 
 **Returns:** `WanResultResponse` with `output.video_url` (video URL)
 
-### `eai.uncensoredAI.generate(request, endpoint, pollingOptions)`
+### `eai.uncensoredAI.generate(request)`
 
-Direct Uncensored AI access with polling callbacks.
+Start image/video generation. Returns immediately with request_id.
+
+**Returns:** `UncensoredGenerateResponse` with `request_id`
+
+### `eai.uncensoredAI.getResult(requestId, endpoint)`
+
+Get current task status and result.
+
+**Returns:** `UncensoredResultResponse` with `status` and `result_url`
+
+### `eai.uncensoredAI.pollResult(requestId, endpoint, pollingOptions)`
+
+Auto-poll until completion with callbacks.
 
 **Returns:** `UncensoredResultResponse` with `result_url`
 

@@ -105,30 +105,25 @@ export class UncensoredAI {
 
     /**
      * Generate or edit images/videos using Uncensored AI endpoint
-     * Automatically polls for results until completion
-     * @param request - Chat completion request with optional image content and additional options
-     * @param endpoint - The endpoint to use: 'uncensored-image' or 'uncensored-video'
-     * @param pollingOptions - Polling options (optional, has smart defaults)
-     * @returns Final result response with generated URL
+     * Returns request_id immediately - use getResult() or pollResult() to poll for completion
+     * @param request - Chat completion request with model, optional image content and additional options
+     * @returns Generate response with request_id for polling
      * 
      * @example Text-to-Image
      * ```typescript
-     * const result = await uncensoredAI.generate({
+     * const task = await uncensoredAI.generate({
      *   messages: [{ role: 'user', content: [{ type: 'text', text: 'A beautiful sunset' }] }],
      *   model: 'uncensored-ai/uncensored-image',
      *   type: 'new',
      *   lora_config: { 'style-lora': 1 }
-     * }, 'uncensored-image', {
-     *   interval: 3000,
-     *   maxAttempts: 60,
-     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
      * });
-     * // Result URL: result.result?.url
+     * // Get request_id and poll manually
+     * const result = await uncensoredAI.getResult(task.request_id, 'uncensored-image');
      * ```
      * 
      * @example Image-to-Image
      * ```typescript
-     * const result = await uncensoredAI.generate({
+     * const task = await uncensoredAI.generate({
      *   messages: [{ 
      *     role: 'user', 
      *     content: [
@@ -139,12 +134,12 @@ export class UncensoredAI {
      *   model: 'uncensored-ai/uncensored-image',
      *   type: 'edit',
      *   image_config: { loras: ['skin', 'lightning'] }
-     * }, 'uncensored-image');
+     * });
      * ```
      * 
      * @example Video Generation
      * ```typescript
-     * const result = await uncensoredAI.generate({
+     * const task = await uncensoredAI.generate({
      *   messages: [{ 
      *     role: 'user', 
      *     content: [
@@ -158,17 +153,22 @@ export class UncensoredAI {
      *   duration: 5,
      *   audio: true,
      *   video_config: { is_fast_video: false, loras: ['flip', 'nsfw'] }
-     * }, 'uncensored-video', {
-     *   interval: 5000, // Video takes longer
+     * });
+     * // Poll for video result
+     * const result = await uncensoredAI.pollResult(task.request_id, 'uncensored-video', {
+     *   interval: 5000,
      *   maxAttempts: 120
      * });
      * ```
      */
     async generate(
-        request: ChatCompletionRequest & UncensoredAIRequestOptions,
-        endpoint: string = 'uncensored-image',
-        pollingOptions: PollingOptions = {}
-    ): Promise<UncensoredResultResponse> {
+        request: ChatCompletionRequest & UncensoredAIRequestOptions
+    ): Promise<UncensoredGenerateResponse> {
+        // Extract endpoint from model (strip 'uncensored-ai/' prefix if present)
+        const endpoint = request.model.startsWith('uncensored-ai/')
+            ? request.model.slice('uncensored-ai/'.length)
+            : request.model;
+
         const url = `${this.baseUrl}/${endpoint}`;
 
         const headers = {
@@ -213,9 +213,6 @@ export class UncensoredAI {
         // Add audio if specified
         body.audio = request.audio !== undefined ? request.audio : true;
 
-
-        console.log('body', body);
-
         const response = await fetch(url, {
             method: 'POST',
             headers,
@@ -230,20 +227,12 @@ export class UncensoredAI {
 
         const uncensoredResponse = (await response.json()) as UncensoredGenerateResponse;
 
-        const requestId: string = uncensoredResponse.request_id;
-
-        if (!requestId) {
+        if (!uncensoredResponse.request_id) {
             throw new Error('No request_id in generate response');
         }
 
-        // Auto-poll for result with smart defaults
-        const finalPollingOptions: PollingOptions = {
-            interval: pollingOptions.interval || (endpoint === 'uncensored-video' ? 5000 : 3000),
-            maxAttempts: pollingOptions.maxAttempts || (endpoint === 'uncensored-video' ? 120 : 60),
-            onStatusUpdate: pollingOptions.onStatusUpdate,
-        };
-
-        return this.pollResult(requestId, endpoint, finalPollingOptions);
+        // Return immediately - user calls getResult() or pollResult() to poll
+        return uncensoredResponse;
     }
 
     /**

@@ -152,8 +152,26 @@ export class Chat {
 
     if (provider === 'uncensored-ai') {
       // UncensoredAI doesn't support streaming, always use non-streaming
-      // generate() automatically polls and returns UncensoredResultResponse
-      const result = await this.uncensoredAI.generate(request, modelName);
+      // generate() returns request_id, then pollResult() gets the result
+      const task = await this.uncensoredAI.generate(request);
+      const requestId = task.request_id;
+
+      if (!requestId) {
+        throw new Error('No request_id returned from UncensoredAI generate');
+      }
+
+      // Determine endpoint for polling
+      const endpoint = modelName; // 'uncensored-image' or 'uncensored-video'
+      const isVideo = endpoint === 'uncensored-video';
+
+      // Poll for result with appropriate intervals
+      const result = await this.uncensoredAI.pollResult(requestId, endpoint, {
+        interval: isVideo ? 5000 : 3000,
+        maxAttempts: isVideo ? 120 : 60,
+        onStatusUpdate: (status: string) => {
+          console.log('UncensoredAI status update:', status);
+        },
+      });
 
       // Transform UncensoredResultResponse to ChatCompletionResponse
       const resultUrl = result.result_url;
