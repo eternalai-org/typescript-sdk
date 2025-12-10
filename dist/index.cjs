@@ -8,26 +8,26 @@ var Flux = class {
   }
   /**
    * Generate image using Flux endpoint
-   * Automatically polls for results until completion
-   * @param request - Chat completion request with prompt and optional images
-   * @param model - The Flux model to use (default: flux-2-pro)
-   * @param pollingOptions - Polling options (optional, has smart defaults)
-   * @returns Final result response with generated image URL
+   * Returns polling_url immediately - use getResult() or pollResult() to poll for completion
+   * @param request - Chat completion request with prompt, model, and optional images
+   * @returns Generate response with polling_url for polling
    * 
    * @example Text-to-Image
    * ```typescript
-   * const result = await flux.generate({
+   * const task = await flux.generate({
    *   messages: [{ role: 'user', content: 'A futuristic city at sunset' }],
    *   model: 'flux/flux-2-pro',
    *   width: 1920,
    *   height: 1080,
    *   safety_tolerance: 2
-   * }, 'flux-2-pro');
+   * });
+   * // Get polling_url and poll manually
+   * const result = await flux.getResult(task.polling_url);
    * ```
    * 
    * @example Image-to-Image with multiple references
    * ```typescript
-   * const result = await flux.generate({
+   * const task = await flux.generate({
    *   messages: [{ 
    *     role: 'user', 
    *     content: [
@@ -37,10 +37,14 @@ var Flux = class {
    *     ] 
    *   }],
    *   model: 'flux/flux-2-pro'
-   * }, 'flux-2-pro');
+   * });
+   * const result = await flux.pollResult(task.polling_url, {
+   *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+   * });
    * ```
    */
-  async generate(request, model = "flux-2-pro", pollingOptions = {}) {
+  async generate(request) {
+    const model = request.model.startsWith("flux/") ? request.model.slice("flux/".length) : request.model;
     const url = `${this.baseUrl}/${model}`;
     const headers = {
       "Content-Type": "application/json",
@@ -74,7 +78,6 @@ var Flux = class {
     if (imageUrls.length > 1) {
       body.input_image_2 = imageUrls[1];
     }
-    console.log("Flux request body:", JSON.stringify(body, null, 2));
     const response = await fetch(url, {
       method: "POST",
       headers,
@@ -86,16 +89,10 @@ var Flux = class {
       throw new Error(`Flux request failed with status ${response.status}: ${errorText}`);
     }
     const generateResponse = await response.json();
-    const pollingUrl = generateResponse.polling_url;
-    if (!pollingUrl) {
+    if (!generateResponse.polling_url) {
       throw new Error("No polling_url in generate response");
     }
-    const finalPollingOptions = {
-      interval: pollingOptions.interval || 3e3,
-      maxAttempts: pollingOptions.maxAttempts || 60,
-      onStatusUpdate: pollingOptions.onStatusUpdate
-    };
-    return this.pollResult(pollingUrl, finalPollingOptions);
+    return generateResponse;
   }
   /**
    * Get result by polling URL
@@ -554,30 +551,25 @@ var UncensoredAI = class {
   }
   /**
    * Generate or edit images/videos using Uncensored AI endpoint
-   * Automatically polls for results until completion
-   * @param request - Chat completion request with optional image content and additional options
-   * @param endpoint - The endpoint to use: 'uncensored-image' or 'uncensored-video'
-   * @param pollingOptions - Polling options (optional, has smart defaults)
-   * @returns Final result response with generated URL
+   * Returns request_id immediately - use getResult() or pollResult() to poll for completion
+   * @param request - Chat completion request with model, optional image content and additional options
+   * @returns Generate response with request_id for polling
    * 
    * @example Text-to-Image
    * ```typescript
-   * const result = await uncensoredAI.generate({
+   * const task = await uncensoredAI.generate({
    *   messages: [{ role: 'user', content: [{ type: 'text', text: 'A beautiful sunset' }] }],
    *   model: 'uncensored-ai/uncensored-image',
    *   type: 'new',
    *   lora_config: { 'style-lora': 1 }
-   * }, 'uncensored-image', {
-   *   interval: 3000,
-   *   maxAttempts: 60,
-   *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
    * });
-   * // Result URL: result.result?.url
+   * // Get request_id and poll manually
+   * const result = await uncensoredAI.getResult(task.request_id, 'uncensored-image');
    * ```
    * 
    * @example Image-to-Image
    * ```typescript
-   * const result = await uncensoredAI.generate({
+   * const task = await uncensoredAI.generate({
    *   messages: [{ 
    *     role: 'user', 
    *     content: [
@@ -588,12 +580,12 @@ var UncensoredAI = class {
    *   model: 'uncensored-ai/uncensored-image',
    *   type: 'edit',
    *   image_config: { loras: ['skin', 'lightning'] }
-   * }, 'uncensored-image');
+   * });
    * ```
    * 
    * @example Video Generation
    * ```typescript
-   * const result = await uncensoredAI.generate({
+   * const task = await uncensoredAI.generate({
    *   messages: [{ 
    *     role: 'user', 
    *     content: [
@@ -607,13 +599,16 @@ var UncensoredAI = class {
    *   duration: 5,
    *   audio: true,
    *   video_config: { is_fast_video: false, loras: ['flip', 'nsfw'] }
-   * }, 'uncensored-video', {
-   *   interval: 5000, // Video takes longer
+   * });
+   * // Poll for video result
+   * const result = await uncensoredAI.pollResult(task.request_id, 'uncensored-video', {
+   *   interval: 5000,
    *   maxAttempts: 120
    * });
    * ```
    */
-  async generate(request, endpoint = "uncensored-image", pollingOptions = {}) {
+  async generate(request) {
+    const endpoint = request.model.startsWith("uncensored-ai/") ? request.model.slice("uncensored-ai/".length) : request.model;
     const url = `${this.baseUrl}/${endpoint}`;
     const headers = {
       "Content-Type": "application/json",
@@ -636,7 +631,6 @@ var UncensoredAI = class {
     body.is_magic_prompt = request.is_magic_prompt !== void 0 ? request.is_magic_prompt : true;
     body.duration = request.duration !== void 0 ? request.duration : 5;
     body.audio = request.audio !== void 0 ? request.audio : true;
-    console.log("body", body);
     const response = await fetch(url, {
       method: "POST",
       headers,
@@ -648,16 +642,10 @@ var UncensoredAI = class {
       throw new Error(`UncensoredAI request failed with status ${response.status}: ${errorText}`);
     }
     const uncensoredResponse = await response.json();
-    const requestId = uncensoredResponse.request_id;
-    if (!requestId) {
+    if (!uncensoredResponse.request_id) {
       throw new Error("No request_id in generate response");
     }
-    const finalPollingOptions = {
-      interval: pollingOptions.interval || (endpoint === "uncensored-video" ? 5e3 : 3e3),
-      maxAttempts: pollingOptions.maxAttempts || (endpoint === "uncensored-video" ? 120 : 60),
-      onStatusUpdate: pollingOptions.onStatusUpdate
-    };
-    return this.pollResult(requestId, endpoint, finalPollingOptions);
+    return uncensoredResponse;
   }
   /**
    * Get result by request_id (polling endpoint)
@@ -763,15 +751,14 @@ var Wan = class {
   }
   /**
    * Generate video from image using Wan endpoint
-   * Automatically polls for results until completion
-   * @param request - Chat completion request with prompt and optional image URL
-   * @param model - The Wan model to use (default: wan2.5-i2v-preview)
-   * @param pollingOptions - Polling options (optional, has smart defaults)
-   * @returns Final result response with generated video URL
+   * Returns task_id immediately - use getResult() to poll for completion
+   * @param request - Chat completion request with prompt, image URL, and model
+   * @returns Task response with task_id for polling
    * 
    * @example
    * ```typescript
-   * const result = await wan.generate({
+   * // Start generation
+   * const task = await wan.generate({
    *   messages: [{ 
    *     role: 'user', 
    *     content: [
@@ -780,25 +767,22 @@ var Wan = class {
    *     ] 
    *   }],
    *   model: 'wan/wan2.5-i2v-preview',
-   *   resolution: '480P',
-   *   prompt_extend: true,
-   *   duration: 10,
-   *   audio: true
-   * }, 'wan2.5-i2v-preview', {
-   *   interval: 5000,
-   *   maxAttempts: 120,
-   *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+   *   resolution: '480P'
    * });
+   * 
+   * // Get task_id and poll manually
+   * const taskId = task.output?.task_id;
+   * const result = await wan.getResult(taskId);
    * ```
    */
-  async generate(request, model = "wan2.5-i2v-preview", pollingOptions = {}) {
+  async generate(request) {
     const url = `${this.baseUrl}/video-synthesis`;
     const headers = {
       "Content-Type": "application/json",
       "X-DashScope-Async": "enable",
-      // Enable this only for server-side usage
       "Authorization": `Bearer ${this.config.apiKey}`
     };
+    const model = request.model.startsWith("wan/") ? request.model.slice(4) : request.model;
     let prompt = "";
     let imgUrl;
     for (const message of request.messages) {
@@ -827,7 +811,6 @@ var Wan = class {
         audio: request.audio !== void 0 ? request.audio : true
       }
     };
-    console.log("Wan request body:", JSON.stringify(body, null, 2));
     const response = await fetch(url, {
       method: "POST",
       headers,
@@ -839,16 +822,10 @@ var Wan = class {
       throw new Error(`Wan request failed with status ${response.status}: ${errorText}`);
     }
     const taskResponse = await response.json();
-    const taskId = taskResponse.output?.task_id;
-    if (!taskId) {
+    if (!taskResponse.output?.task_id) {
       throw new Error("No task_id in generate response");
     }
-    const finalPollingOptions = {
-      interval: pollingOptions.interval || 5e3,
-      maxAttempts: pollingOptions.maxAttempts || 120,
-      onStatusUpdate: pollingOptions.onStatusUpdate
-    };
-    return this.pollResult(taskId, finalPollingOptions);
+    return taskResponse;
   }
   /**
    * Get result by task_id (polling endpoint)
@@ -1001,7 +978,18 @@ var Chat = class {
   async send(request) {
     const { provider, modelName } = this.parseModelName(request.model);
     if (provider === "flux") {
-      const result = await this.flux.generate(request, modelName);
+      const task = await this.flux.generate(request);
+      const pollingUrl = task.polling_url;
+      if (!pollingUrl) {
+        throw new Error("No polling_url returned from Flux generate");
+      }
+      const result = await this.flux.pollResult(pollingUrl, {
+        interval: 3e3,
+        maxAttempts: 60,
+        onStatusUpdate: (status) => {
+          console.log("Flux status update:", status);
+        }
+      });
       const imageUrl = result.result?.sample || "";
       return {
         id: result.id || `chatcmpl-flux-${Date.now()}`,
@@ -1029,7 +1017,20 @@ var Chat = class {
       return this.tavily.search(request, modelName);
     }
     if (provider === "uncensored-ai") {
-      const result = await this.uncensoredAI.generate(request, modelName);
+      const task = await this.uncensoredAI.generate(request);
+      const requestId = task.request_id;
+      if (!requestId) {
+        throw new Error("No request_id returned from UncensoredAI generate");
+      }
+      const endpoint = modelName;
+      const isVideo = endpoint === "uncensored-video";
+      const result = await this.uncensoredAI.pollResult(requestId, endpoint, {
+        interval: isVideo ? 5e3 : 3e3,
+        maxAttempts: isVideo ? 120 : 60,
+        onStatusUpdate: (status) => {
+          console.log("UncensoredAI status update:", status);
+        }
+      });
       const resultUrl = result.result_url;
       return {
         id: result.request_id || `chatcmpl-uncensored-${Date.now()}`,
@@ -1047,7 +1048,12 @@ var Chat = class {
       };
     }
     if (provider === "wan") {
-      const result = await this.wan.generate(request, modelName, {
+      const task = await this.wan.generate(request);
+      const taskId = task.output?.task_id;
+      if (!taskId) {
+        throw new Error("No task_id returned from Wan generate");
+      }
+      const result = await this.wan.pollResult(taskId, {
         onStatusUpdate: (status) => {
           console.log("Wan status update:", status);
         }

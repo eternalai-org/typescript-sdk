@@ -181,6 +181,21 @@ interface FluxRequestOptions {
     safety_tolerance?: number;
 }
 /**
+ * Flux generate response with polling URL
+ */
+interface FluxGenerateResponse {
+    /** Request ID */
+    id: string;
+    /** URL to poll for results */
+    polling_url: string;
+    /** Cost of the request */
+    cost?: number;
+    /** Input megapixels */
+    input_mp?: number;
+    /** Output megapixels */
+    output_mp?: number;
+}
+/**
  * Flux result from polling
  */
 interface FluxResultResponse {
@@ -232,26 +247,26 @@ declare class Flux {
     constructor(config: EternalAIConfig);
     /**
      * Generate image using Flux endpoint
-     * Automatically polls for results until completion
-     * @param request - Chat completion request with prompt and optional images
-     * @param model - The Flux model to use (default: flux-2-pro)
-     * @param pollingOptions - Polling options (optional, has smart defaults)
-     * @returns Final result response with generated image URL
+     * Returns polling_url immediately - use getResult() or pollResult() to poll for completion
+     * @param request - Chat completion request with prompt, model, and optional images
+     * @returns Generate response with polling_url for polling
      *
      * @example Text-to-Image
      * ```typescript
-     * const result = await flux.generate({
+     * const task = await flux.generate({
      *   messages: [{ role: 'user', content: 'A futuristic city at sunset' }],
      *   model: 'flux/flux-2-pro',
      *   width: 1920,
      *   height: 1080,
      *   safety_tolerance: 2
-     * }, 'flux-2-pro');
+     * });
+     * // Get polling_url and poll manually
+     * const result = await flux.getResult(task.polling_url);
      * ```
      *
      * @example Image-to-Image with multiple references
      * ```typescript
-     * const result = await flux.generate({
+     * const task = await flux.generate({
      *   messages: [{
      *     role: 'user',
      *     content: [
@@ -261,10 +276,13 @@ declare class Flux {
      *     ]
      *   }],
      *   model: 'flux/flux-2-pro'
-     * }, 'flux-2-pro');
+     * });
+     * const result = await flux.pollResult(task.polling_url, {
+     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+     * });
      * ```
      */
-    generate(request: ChatCompletionRequest & FluxRequestOptions, model?: string, pollingOptions?: PollingOptions$2): Promise<FluxResultResponse>;
+    generate(request: ChatCompletionRequest & FluxRequestOptions): Promise<FluxGenerateResponse>;
     /**
      * Get result by polling URL
      * @param pollingUrl - The polling URL returned from generate()
@@ -398,6 +416,14 @@ interface UncensoredAIRequestOptions {
     audio?: boolean;
 }
 /**
+ * Generate response with request_id for polling
+ */
+interface UncensoredGenerateResponse {
+    request_id: string;
+    status: 'pending' | 'processing' | 'success' | 'failed' | 'error';
+    message?: string;
+}
+/**
  * Result response from polling endpoint
  */
 interface UncensoredResultResponse {
@@ -429,30 +455,25 @@ declare class UncensoredAI {
     constructor(config: EternalAIConfig);
     /**
      * Generate or edit images/videos using Uncensored AI endpoint
-     * Automatically polls for results until completion
-     * @param request - Chat completion request with optional image content and additional options
-     * @param endpoint - The endpoint to use: 'uncensored-image' or 'uncensored-video'
-     * @param pollingOptions - Polling options (optional, has smart defaults)
-     * @returns Final result response with generated URL
+     * Returns request_id immediately - use getResult() or pollResult() to poll for completion
+     * @param request - Chat completion request with model, optional image content and additional options
+     * @returns Generate response with request_id for polling
      *
      * @example Text-to-Image
      * ```typescript
-     * const result = await uncensoredAI.generate({
+     * const task = await uncensoredAI.generate({
      *   messages: [{ role: 'user', content: [{ type: 'text', text: 'A beautiful sunset' }] }],
      *   model: 'uncensored-ai/uncensored-image',
      *   type: 'new',
      *   lora_config: { 'style-lora': 1 }
-     * }, 'uncensored-image', {
-     *   interval: 3000,
-     *   maxAttempts: 60,
-     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
      * });
-     * // Result URL: result.result?.url
+     * // Get request_id and poll manually
+     * const result = await uncensoredAI.getResult(task.request_id, 'uncensored-image');
      * ```
      *
      * @example Image-to-Image
      * ```typescript
-     * const result = await uncensoredAI.generate({
+     * const task = await uncensoredAI.generate({
      *   messages: [{
      *     role: 'user',
      *     content: [
@@ -463,12 +484,12 @@ declare class UncensoredAI {
      *   model: 'uncensored-ai/uncensored-image',
      *   type: 'edit',
      *   image_config: { loras: ['skin', 'lightning'] }
-     * }, 'uncensored-image');
+     * });
      * ```
      *
      * @example Video Generation
      * ```typescript
-     * const result = await uncensoredAI.generate({
+     * const task = await uncensoredAI.generate({
      *   messages: [{
      *     role: 'user',
      *     content: [
@@ -482,13 +503,15 @@ declare class UncensoredAI {
      *   duration: 5,
      *   audio: true,
      *   video_config: { is_fast_video: false, loras: ['flip', 'nsfw'] }
-     * }, 'uncensored-video', {
-     *   interval: 5000, // Video takes longer
+     * });
+     * // Poll for video result
+     * const result = await uncensoredAI.pollResult(task.request_id, 'uncensored-video', {
+     *   interval: 5000,
      *   maxAttempts: 120
      * });
      * ```
      */
-    generate(request: ChatCompletionRequest & UncensoredAIRequestOptions, endpoint?: string, pollingOptions?: PollingOptions$1): Promise<UncensoredResultResponse>;
+    generate(request: ChatCompletionRequest & UncensoredAIRequestOptions): Promise<UncensoredGenerateResponse>;
     /**
      * Get result by request_id (polling endpoint)
      * @param requestId - The request ID returned from generate()
@@ -549,6 +572,16 @@ interface WanRequestOptions {
     audio?: boolean;
 }
 /**
+ * Wan async task response
+ */
+interface WanTaskResponse {
+    output?: {
+        task_id: string;
+        task_status: string;
+    };
+    request_id?: string;
+}
+/**
  * Wan task result response
  */
 interface WanResultResponse {
@@ -603,15 +636,14 @@ declare class Wan {
     constructor(config: EternalAIConfig);
     /**
      * Generate video from image using Wan endpoint
-     * Automatically polls for results until completion
-     * @param request - Chat completion request with prompt and optional image URL
-     * @param model - The Wan model to use (default: wan2.5-i2v-preview)
-     * @param pollingOptions - Polling options (optional, has smart defaults)
-     * @returns Final result response with generated video URL
+     * Returns task_id immediately - use getResult() to poll for completion
+     * @param request - Chat completion request with prompt, image URL, and model
+     * @returns Task response with task_id for polling
      *
      * @example
      * ```typescript
-     * const result = await wan.generate({
+     * // Start generation
+     * const task = await wan.generate({
      *   messages: [{
      *     role: 'user',
      *     content: [
@@ -620,18 +652,15 @@ declare class Wan {
      *     ]
      *   }],
      *   model: 'wan/wan2.5-i2v-preview',
-     *   resolution: '480P',
-     *   prompt_extend: true,
-     *   duration: 10,
-     *   audio: true
-     * }, 'wan2.5-i2v-preview', {
-     *   interval: 5000,
-     *   maxAttempts: 120,
-     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+     *   resolution: '480P'
      * });
+     *
+     * // Get task_id and poll manually
+     * const taskId = task.output?.task_id;
+     * const result = await wan.getResult(taskId);
      * ```
      */
-    generate(request: ChatCompletionRequest & WanRequestOptions, model?: string, pollingOptions?: PollingOptions): Promise<WanResultResponse>;
+    generate(request: ChatCompletionRequest & WanRequestOptions): Promise<WanTaskResponse>;
     /**
      * Get result by task_id (polling endpoint)
      * @param taskId - The task ID returned from generate()
