@@ -186,10 +186,10 @@ console.log(search.choices[0].message.content);
 | Gemini | `gemini/gemini-*` | Chat |
 | Grok | `xai/grok-*` | Chat |
 | Qwen | `qwen/qwen-*` | Chat |
-| **Flux** | `flux/flux-2-pro` | Image |
-| **Uncensored AI** | `uncensored-ai/uncensored-image` | Image |
-| **Uncensored AI** | `uncensored-ai/uncensored-video` | Video |
-| **Wan** | `wan/wan2.5-i2v-preview` | Video |
+| Flux | `flux/flux-2-pro` | Image |
+| Uncensored AI | `uncensored-ai/uncensored-image` | Image |
+| Uncensored AI | `uncensored-ai/uncensored-video` | Video |
+| Wan | `wan/wan2.5-i2v-preview` | Video |
 | Tavily | `tavily/search` | Search |
 | Nano Banana | `nano-banana/gemini-*` | Chat + Image |
 

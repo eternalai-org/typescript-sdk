@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-12-10
+
+### ⚠️ BREAKING CHANGES
+
+> **Important**: This release changes the API signature for `flux.generate()`, `wan.generate()`, and `uncensoredAI.generate()`.
+
+**Async API Pattern**: All generation methods now return immediately with task/request ID instead of auto-polling.
+
+**Migration Guide**:
+```typescript
+// Before (v0.4.x) - auto-polls
+const result = await eai.flux.generate(request, 'flux-2-pro', { onStatusUpdate: ... });
+console.log(result.result?.sample);
+
+// After (v0.5.0) - returns immediately, poll manually
+const task = await eai.flux.generate(request);
+const result = await eai.flux.pollResult(task.polling_url, { onStatusUpdate: ... });
+console.log(result.result?.sample);
+```
+
+### Changed
+- 🎨 **Flux** - `generate()` now returns `FluxGenerateResponse` with `polling_url` immediately
+  - Use `getResult(pollingUrl)` to check status once
+  - Use `pollResult(pollingUrl, options)` to auto-poll with callbacks
+  - Model is now extracted from `request.model` (no separate parameter)
+
+- 🎬 **Wan** - `generate()` now returns `WanTaskResponse` with `task_id` immediately
+  - Use `getResult(taskId)` to check status once
+  - Use `pollResult(taskId, options)` to auto-poll with callbacks
+  - Model is now extracted from `request.model` (no separate parameter)
+
+- 🖼️ **UncensoredAI** - `generate()` now returns `UncensoredGenerateResponse` with `request_id` immediately
+  - Use `getResult(requestId, endpoint)` to check status once
+  - Use `pollResult(requestId, endpoint, options)` to auto-poll with callbacks
+  - Endpoint is now extracted from `request.model` (no separate parameter)
+
+### Why This Change?
+- **Browser apps**: Can now show real-time progress updates to users
+- **Better control**: Developers can implement custom polling UI
+- **Non-blocking**: `generate()` returns instantly, no 5-10 minute waits
+- **Consistent API**: All three services now follow the same pattern
+
+### Notes
+- `chat.send()` still works the same (auto-polls internally)
+- Updated README and docs with new examples
+- Removed debug `console.log` statements
+
 ## [0.4.5] - 2025-12-09
 
 ### Fixed
@@ -181,6 +228,7 @@ Access multiple AI providers through EternalAI's unified API:
 - Google Gemini
 - And more via [eternalai.org](https://eternalai.org/api/build)
 
+[0.5.0]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.5.0
 [0.4.5]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.5
 [0.4.4]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.4
 [0.4.3]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.3
