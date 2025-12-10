@@ -197,25 +197,32 @@ console.log(search.choices[0].message.content);
 
 ## Advanced Usage
 
-### Flux with Polling Callbacks
+### Flux - Manual Polling (Recommended for Browser)
 
 ```typescript
-const result = await eai.flux.generate(
-  {
-    messages: [{ role: 'user', content: 'A mountain landscape' }],
-    model: 'flux-2-pro',
-    width: 1024,
-    height: 1024,
-    safety_tolerance: 2,
-  },
-  'flux-2-pro',
-  {
-    interval: 3000,
-    maxAttempts: 60,
-    onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`),
-  }
-);
-console.log('URL:', result.result?.sample);
+// Step 1: Start generation - returns immediately with polling_url
+const task = await eai.flux.generate({
+  messages: [{ role: 'user', content: 'A mountain landscape' }],
+  model: 'flux/flux-2-pro',
+  width: 1024,
+  height: 1024,
+  safety_tolerance: 2,
+});
+console.log('Task started:', task.polling_url);
+
+// Step 2: Poll for result
+const result = await eai.flux.pollResult(task.polling_url, {
+  interval: 3000,
+  maxAttempts: 60,
+  onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`),
+});
+console.log('Image URL:', result.result?.sample);
+
+// Or check status manually
+const status = await eai.flux.getResult(task.polling_url);
+if (status.status === 'Ready') {
+  console.log('Image URL:', status.result?.sample);
+}
 ```
 
 ### Wan - Manual Polling (Recommended for Browser)
@@ -314,9 +321,21 @@ Universal method for all providers. Auto-routes based on model prefix.
 
 **Returns:** `ChatCompletionResponse` or `AsyncIterable<ChatCompletionChunk>` (if streaming)
 
-### `eai.flux.generate(request, model, pollingOptions)`
+### `eai.flux.generate(request)`
 
-Direct Flux access with polling callbacks.
+Start image generation. Returns immediately with polling_url.
+
+**Returns:** `FluxGenerateResponse` with `polling_url`
+
+### `eai.flux.getResult(pollingUrl)`
+
+Get current task status and result.
+
+**Returns:** `FluxResultResponse` with `status` and `result.sample`
+
+### `eai.flux.pollResult(pollingUrl, pollingOptions)`
+
+Auto-poll until completion with callbacks.
 
 **Returns:** `FluxResultResponse` with `result.sample` (image URL)
 

@@ -115,8 +115,22 @@ export class Chat {
     // Route to custom providers
     if (provider === 'flux') {
       // Flux doesn't support streaming, always use non-streaming
-      // generate() returns FluxResultResponse with image URL after polling
-      const result = await this.flux.generate(request as any, modelName);
+      // generate() returns polling_url, then pollResult() gets the image
+      const task = await this.flux.generate(request as any);
+      const pollingUrl = task.polling_url;
+
+      if (!pollingUrl) {
+        throw new Error('No polling_url returned from Flux generate');
+      }
+
+      // Poll for result with status updates
+      const result = await this.flux.pollResult(pollingUrl, {
+        interval: 3000,
+        maxAttempts: 60,
+        onStatusUpdate: (status: string) => {
+          console.log('Flux status update:', status);
+        },
+      });
 
       // Transform FluxResultResponse to ChatCompletionResponse
       const imageUrl = result.result?.sample || '';

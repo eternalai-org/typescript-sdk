@@ -123,26 +123,26 @@ export class Flux {
 
     /**
      * Generate image using Flux endpoint
-     * Automatically polls for results until completion
-     * @param request - Chat completion request with prompt and optional images
-     * @param model - The Flux model to use (default: flux-2-pro)
-     * @param pollingOptions - Polling options (optional, has smart defaults)
-     * @returns Final result response with generated image URL
+     * Returns polling_url immediately - use getResult() or pollResult() to poll for completion
+     * @param request - Chat completion request with prompt, model, and optional images
+     * @returns Generate response with polling_url for polling
      * 
      * @example Text-to-Image
      * ```typescript
-     * const result = await flux.generate({
+     * const task = await flux.generate({
      *   messages: [{ role: 'user', content: 'A futuristic city at sunset' }],
      *   model: 'flux/flux-2-pro',
      *   width: 1920,
      *   height: 1080,
      *   safety_tolerance: 2
-     * }, 'flux-2-pro');
+     * });
+     * // Get polling_url and poll manually
+     * const result = await flux.getResult(task.polling_url);
      * ```
      * 
      * @example Image-to-Image with multiple references
      * ```typescript
-     * const result = await flux.generate({
+     * const task = await flux.generate({
      *   messages: [{ 
      *     role: 'user', 
      *     content: [
@@ -152,14 +152,20 @@ export class Flux {
      *     ] 
      *   }],
      *   model: 'flux/flux-2-pro'
-     * }, 'flux-2-pro');
+     * });
+     * const result = await flux.pollResult(task.polling_url, {
+     *   onStatusUpdate: (status, attempt) => console.log(`[${attempt}] ${status}`)
+     * });
      * ```
      */
     async generate(
-        request: ChatCompletionRequest & FluxRequestOptions,
-        model: string = 'flux-2-pro',
-        pollingOptions: PollingOptions = {}
-    ): Promise<FluxResultResponse> {
+        request: ChatCompletionRequest & FluxRequestOptions
+    ): Promise<FluxGenerateResponse> {
+        // Extract model name (strip 'flux/' prefix if present)
+        const model = request.model.startsWith('flux/')
+            ? request.model.slice('flux/'.length)
+            : request.model;
+
         const url = `${this.baseUrl}/${model}`;
 
         const headers = {
@@ -202,8 +208,6 @@ export class Flux {
             body.input_image_2 = imageUrls[1];
         }
 
-        console.log('Flux request body:', JSON.stringify(body, null, 2));
-
         const response = await fetch(url, {
             method: 'POST',
             headers,
@@ -218,20 +222,12 @@ export class Flux {
 
         const generateResponse = (await response.json()) as FluxGenerateResponse;
 
-        const pollingUrl = generateResponse.polling_url;
-
-        if (!pollingUrl) {
+        if (!generateResponse.polling_url) {
             throw new Error('No polling_url in generate response');
         }
 
-        // Auto-poll for result with smart defaults
-        const finalPollingOptions: PollingOptions = {
-            interval: pollingOptions.interval || 3000,
-            maxAttempts: pollingOptions.maxAttempts || 60,
-            onStatusUpdate: pollingOptions.onStatusUpdate,
-        };
-
-        return this.pollResult(pollingUrl, finalPollingOptions);
+        // Return immediately - user calls getResult() or pollResult() to poll
+        return generateResponse;
     }
 
     /**
