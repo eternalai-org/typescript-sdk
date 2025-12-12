@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-12-12
+
+### Added
+- 🤖 **GLM (ChatGLM) Provider** - New `glm/` prefix for ChatGLM models
+  - Support for `glm/glm-4.5-flash` and other GLM models
+  - Both streaming and non-streaming modes
+  - Endpoint: `https://open.eternalai.org/glm/api/paas/v4`
+  - New live tests: `glm-streaming.live.ts`, `glm-nonstreaming.live.ts`
+  - Documentation: `docs/models/glm.md`
+
+- 🇫🇷 **Mistral AI Provider** - New `mistralai/` prefix for Mistral models
+  - Support for `mistralai/devstral-2512` and other Mistral models
+  - Both streaming and non-streaming modes
+  - Endpoint: `https://open.eternalai.org/mistralai/v1`
+  - New live test: `mistral-streaming.live.ts`
+  - Documentation: `docs/models/mistral.md`
+
+### Changed
+- Updated README with new providers in the Supported Providers table
+- Added new service classes: `Glm`, `Mistral`
+- Extended `CustomProvider` type with new providers
+
 ## [0.5.0] - 2025-12-10
 
 ### ⚠️ BREAKING CHANGES
@@ -228,6 +250,7 @@ Access multiple AI providers through EternalAI's unified API:
 - Google Gemini
 - And more via [eternalai.org](https://eternalai.org/api/build)
 
+[0.6.0]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.5.0
 [0.4.5]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.5
 [0.4.4]: https://github.com/eternalai-org/typescript-sdk/releases/tag/v0.4.4
