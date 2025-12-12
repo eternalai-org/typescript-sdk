@@ -291,6 +291,115 @@ var Glm = class {
   }
 };
 
+// src/services/mistral.ts
+var Mistral = class {
+  constructor(config) {
+    this.baseUrl = "https://open.eternalai.org/mistralai/v1";
+    this.config = config;
+  }
+  /**
+   * Generate content using Mistral endpoint (non-streaming)
+   * @param request - Chat completion request in OpenAI format
+   * @param mistralModel - The Mistral model to use (default: devstral-2512)
+   * @returns Chat completion response in OpenAI format
+   */
+  async generateContent(request, mistralModel = "devstral-2512") {
+    const url = `${this.baseUrl}/chat/completions`;
+    const headers = {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      Authorization: `Bearer ${this.config.apiKey}`
+    };
+    const body = {
+      ...request,
+      model: mistralModel,
+      stream: false
+    };
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Mistral request failed with status ${response.status}: ${errorText}`);
+    }
+    return await response.json();
+  }
+  /**
+   * Stream content using Mistral endpoint
+   * @param request - Chat completion request in OpenAI format
+   * @param mistralModel - The Mistral model to use (default: devstral-2512)
+   * @returns Async iterable of chat completion chunks
+   */
+  async *streamContent(request, mistralModel = "devstral-2512") {
+    const url = `${this.baseUrl}/chat/completions`;
+    const headers = {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      Authorization: `Bearer ${this.config.apiKey}`
+    };
+    const body = {
+      ...request,
+      model: mistralModel,
+      stream: true
+    };
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Mistral streaming request failed with status ${response.status}: ${errorText}`);
+    }
+    if (!response.body) {
+      throw new Error("Response body is not readable");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine === "" || trimmedLine === "data: [DONE]") {
+            continue;
+          }
+          if (trimmedLine.startsWith("data: ")) {
+            const data = trimmedLine.slice(6);
+            try {
+              const chunk = JSON.parse(data);
+              yield chunk;
+            } catch {
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  /**
+   * Create abort signal with timeout
+   */
+  createAbortSignal() {
+    if (this.config.timeout) {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), this.config.timeout);
+      return controller.signal;
+    }
+    return void 0;
+  }
+};
+
 // src/utils/image.ts
 async function uploadImageToStorage(base64Data, mimeType) {
   const uploadUrl = "https://api.eternalai.org/api/agent/upload-image?admin_key=eai2024";
@@ -1028,6 +1137,7 @@ var Wan = class {
 // src/services/chat.ts
 var FLUX_PREFIX = "flux/";
 var GLM_PREFIX = "glm/";
+var MISTRAL_PREFIX = "mistralai/";
 var NANO_BANANA_PREFIX = "nano-banana/";
 var TAVILY_PREFIX = "tavily/";
 var UNCENSORED_AI_PREFIX = "uncensored-ai/";
@@ -1038,6 +1148,7 @@ var Chat = class {
     this.config = config;
     this.flux = new Flux(config);
     this.glm = new Glm(config);
+    this.mistral = new Mistral(config);
     this.nanoBanana = new NanoBanana(config);
     this.tavily = new Tavily(config);
     this.uncensoredAI = new UncensoredAI(config);
@@ -1059,6 +1170,12 @@ var Chat = class {
       return {
         provider: "glm",
         modelName: model.slice(GLM_PREFIX.length)
+      };
+    }
+    if (model.startsWith(MISTRAL_PREFIX)) {
+      return {
+        provider: "mistralai",
+        modelName: model.slice(MISTRAL_PREFIX.length)
       };
     }
     if (model.startsWith(NANO_BANANA_PREFIX)) {
@@ -1126,6 +1243,13 @@ var Chat = class {
         return this.glm.streamContent(request, modelName);
       } else {
         return this.glm.generateContent(request, modelName);
+      }
+    }
+    if (provider === "mistralai") {
+      if (request.stream) {
+        return this.mistral.streamContent(request, modelName);
+      } else {
+        return this.mistral.generateContent(request, modelName);
       }
     }
     if (provider === "nano-banana") {

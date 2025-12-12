@@ -131,6 +131,7 @@ declare class Chat {
     private readonly baseUrl;
     private readonly flux;
     private readonly glm;
+    private readonly mistral;
     private readonly nanoBanana;
     private readonly tavily;
     private readonly uncensoredAI;

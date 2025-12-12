@@ -186,6 +186,7 @@ console.log(search.choices[0].message.content);
 | Gemini | `gemini/gemini-*` | Chat |
 | GLM | `glm/glm-4.5-flash` | Chat |
 | Grok | `xai/grok-*` | Chat |
+| Mistral | `mistralai/devstral-2512` | Chat |
 | Qwen | `qwen/qwen-*` | Chat |
 | Flux | `flux/flux-2-pro` | Image |
 | Uncensored AI | `uncensored-ai/uncensored-image` | Image |

@@ -8,6 +8,7 @@ import type {
 } from '../types';
 import { Flux } from './flux';
 import { Glm } from './glm';
+import { Mistral } from './mistral';
 import { NanoBanana } from './nano-banana';
 import { Tavily } from './tavily';
 import { UncensoredAI } from './uncensored-ai';
@@ -15,12 +16,13 @@ import { Wan } from './wan';
 
 const FLUX_PREFIX = 'flux/';
 const GLM_PREFIX = 'glm/';
+const MISTRAL_PREFIX = 'mistralai/';
 const NANO_BANANA_PREFIX = 'nano-banana/';
 const TAVILY_PREFIX = 'tavily/';
 const UNCENSORED_AI_PREFIX = 'uncensored-ai/';
 const WAN_PREFIX = 'wan/';
 
-type CustomProvider = 'flux' | 'glm' | 'nano-banana' | 'tavily' | 'uncensored-ai' | 'wan' | null;
+type CustomProvider = 'flux' | 'glm' | 'mistralai' | 'nano-banana' | 'tavily' | 'uncensored-ai' | 'wan' | null;
 
 /**
  * Chat service for sending messages and receiving responses
@@ -30,6 +32,7 @@ export class Chat {
   private readonly baseUrl = 'https://open.eternalai.org/api/v1';
   private readonly flux: Flux;
   private readonly glm: Glm;
+  private readonly mistral: Mistral;
   private readonly nanoBanana: NanoBanana;
   private readonly tavily: Tavily;
   private readonly uncensoredAI: UncensoredAI;
@@ -39,6 +42,7 @@ export class Chat {
     this.config = config;
     this.flux = new Flux(config);
     this.glm = new Glm(config);
+    this.mistral = new Mistral(config);
     this.nanoBanana = new NanoBanana(config);
     this.tavily = new Tavily(config);
     this.uncensoredAI = new UncensoredAI(config);
@@ -61,6 +65,12 @@ export class Chat {
       return {
         provider: 'glm',
         modelName: model.slice(GLM_PREFIX.length),
+      };
+    }
+    if (model.startsWith(MISTRAL_PREFIX)) {
+      return {
+        provider: 'mistralai',
+        modelName: model.slice(MISTRAL_PREFIX.length),
       };
     }
     if (model.startsWith(NANO_BANANA_PREFIX)) {
@@ -166,6 +176,14 @@ export class Chat {
         return this.glm.streamContent(request, modelName);
       } else {
         return this.glm.generateContent(request, modelName);
+      }
+    }
+
+    if (provider === 'mistralai') {
+      if (request.stream) {
+        return this.mistral.streamContent(request, modelName);
+      } else {
+        return this.mistral.generateContent(request, modelName);
       }
     }
 
