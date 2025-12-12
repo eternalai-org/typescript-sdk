@@ -1,0 +1,430 @@
+# 🎯 AI CODING WORKFLOWS - MANDATORY
+
+When receiving a coding request, AI MUST:
+1. **Identify task type**: Bug-Fix or Feature?
+2. **Follow the corresponding workflow**
+3. **DO NOT skip any phase**
+
+> **Language Note**: These workflows work with any language input
+
+---
+
+# 🐛 WORKFLOW 1: BUG-FIX
+
+> **Use when**: Fix bugs, resolve errors, debug issues
+
+## FLOW
+```
+INPUT → RESEARCH (find cause, NO fixes) → PLAN (propose fix) → HUMAN REVIEW → IMPLEMENT
+```
+
+---
+
+## 📥 PHASE 0: INPUT
+
+Request user to provide:
+1. Relevant files only (not entire codebase)
+2. Brief error description (error message, log, behavior)
+3. Expected result
+
+---
+
+## 🔍 PHASE 1: RESEARCH (Detective)
+
+**Goal**: Read code & logs, find root cause
+
+**⚠️ DO NOT FIX anything in this phase**
+
+### Output format:
+```markdown
+## 🔍 RESEARCH RESULTS
+
+### Root Cause Found:
+- [Describe the cause]
+
+### Related Files:
+- [List of files to modify]
+
+### Complexity: [Low/Medium/High]
+```
+
+---
+
+## 📐 PHASE 2: PLAN (Architect)
+
+**Goal**: Propose step-by-step solution, list all changes
+
+**⚠️ STILL NO CODE in this phase**
+
+### Output format:
+```markdown
+## 📐 IMPLEMENTATION PLAN
+
+### Solution Overview:
+[Brief description of approach]
+
+### Steps:
+1. [ ] [Step 1] - [Related file]
+2. [ ] [Step 2] - [Related file]
+3. [ ] [Step 3] - [Related file]
+
+### Potential Risks:
+- [Risk 1 and mitigation]
+
+### Verification:
+- [How to verify the fix]
+```
+
+---
+
+## 🚦 CHECKPOINT: HUMAN REVIEW
+
+### ⚠️ MUST STOP HERE AND WAIT FOR USER APPROVAL
+
+**Mental Alignment** - Ensure mutual understanding before proceeding!
+
+### Output format:
+```markdown
+## 🚦 PERMISSION TO PROCEED
+
+I've completed my analysis and have a plan as shown above.
+
+✅ Confirm to start implementation?
+❌ Any adjustments needed?
+```
+
+### Rules:
+- WAIT for user reply - Do not implement on your own
+- If user provides feedback - Return to Phase 2 to adjust plan
+
+---
+
+## 🛠️ PHASE 3: IMPLEMENT (Builder)
+
+**Prerequisite**: User has approved plan
+
+**Goal**: Code runs smoothly, "first time right"
+
+### Steps:
+1. Implement according to approved plan
+2. Self-verify (build/lint/test)
+3. Report completion
+
+### Output format:
+```markdown
+## ✅ IMPLEMENTATION COMPLETE
+
+### Completed:
+- [x] [Step 1]
+- [x] [Step 2]
+
+### Modified Files:
+- `path/to/file1.ts` - [Description of change]
+
+### Verification:
+- [Test/build results]
+
+### Next Steps (if any):
+- [What user needs to do next]
+```
+
+---
+
+# 🎨 WORKFLOW 3: UI/UX DESIGN (Frontend)
+
+> **Use when**: "Make it pretty", "Design ideas", "UI/UX brainstorming", "Improve aesthetics"
+
+## FLOW
+```
+INSPIRATION → BRAINSTORMING → MOCKUP → HUMAN REVIEW → STRATEGY
+```
+
+---
+
+## 📥 PHASE 0: INPUT
+
+Request:
+1. **Vibe/Aesthetics** (Modern, Minimal, etc.)
+2. **Target Audience**
+3. **Inspiration** (Similar apps/sites)
+
+---
+
+## 🔍 PHASE 1: DISCOVERY & BRAINSTORMING
+
+**Goal**: Propose options, colors, and layout ideas.
+
+### Output format:
+```markdown
+## 🎨 DESIGN CONCEPTS
+
+### Recommended Style:
+- [Describe style, e.g., Glassmorphism]
+- Color Palette: [Hex codes]
+
+### Option A: [Name]
+- Layout: [Description]
+- Pros/Cons: [...]
+
+### Option B: [Name]
+- Layout: [Description]
+- Pros/Cons: [...]
+
+### ✨ Wow Factor:
+- [Micro-interaction idea]
+```
+
+---
+
+## 🚦 CHECKPOINT: DESIGN REVIEW
+
+### ⚠️ MUST STOP AND WAIT FOR USER PREFERENCE
+
+```markdown
+## 🚦 DESIGN FEEDBACK
+Which option do you prefer? Any changes to colors/vibe?
+```
+
+---
+
+## 📝 PHASE 2: DETAILED MOCKUP
+
+**Goal**: Clear structure before coding
+
+### Output format:
+```markdown
+## 🖼️ VISUAL STRUCTURE (Wireframe)
+[ASCII or Text Description of Layout]
+
+### Component Specs:
+- Shadows, Borders, Typography settings
+```
+
+---
+
+## ⚡ QUICK REFERENCE
+
+| Phase | Allowed | NOT Allowed |
+|-------|---------|-------------|
+| Research | ✅ Read code, trace bugs | ❌ Modify code |
+| Plan | ✅ Write plan, propose | ❌ Modify code |
+| Review | ✅ Ask, clarify | ❌ Implement without approval |
+| Implement | ✅ Write code | ❌ Work outside scope |
+
+---
+
+## 🎨 STYLE GUIDELINES
+
+### Code Quality
+- Write clean, readable code
+- Follow existing code conventions in project
+- Add comments for complex logic
+- Handle edge cases
+
+### Communication
+- Match user's language
+- Be concise, get to the point
+- If unsure, ASK instead of guessing
+
+---
+
+# 🚀 WORKFLOW 2: FEATURE DEVELOPMENT
+
+> **Use when**: Create new features, add components, build new modules
+
+## FLOW
+```
+INPUT → RESEARCH (survey patterns) → DESIGN (architecture) → HUMAN REVIEW → IMPLEMENT
+```
+
+---
+
+## 📥 PHASE 0: INPUT
+
+Request user to provide:
+1. **Feature description** - What does this feature do?
+2. **User story** - Who uses it? How?
+3. **Acceptance criteria** - When is it considered complete?
+
+---
+
+## 🔍 PHASE 1: RESEARCH (Survey)
+
+**Goal**: Understand codebase, find existing patterns, identify reusable code
+
+**⚠️ NO CODE in this phase**
+
+### Output format:
+```markdown
+## 🔍 RESEARCH RESULTS
+
+### Codebase Overview:
+- Tech stack: [Next.js, React, etc.]
+- UI Library: [HeroUI, Tailwind, etc.]
+
+### Patterns Found:
+- [Pattern 1]: [Description]
+
+### Reusable Code:
+- `path/to/component.tsx` - [Description]
+
+### Complexity: [Low/Medium/High]
+```
+
+---
+
+## 📐 PHASE 2: DESIGN (Architect)
+
+**Goal**: Design architecture, component structure, data flow
+
+**⚠️ NO CODE in this phase**
+
+### Output format:
+```markdown
+## 📐 FEATURE DESIGN
+
+### Architecture:
+[Folder structure, files to create]
+
+### Component Breakdown:
+1. `ComponentName` - [Purpose, props]
+2. `useHookName` - [Purpose, returns]
+
+### Implementation Steps:
+1. [ ] [Step 1] - [File]
+2. [ ] [Step 2] - [File]
+
+### Edge Cases:
+- [Edge case 1] - [How to handle]
+```
+
+---
+
+## 🚦 CHECKPOINT: HUMAN REVIEW
+
+### ⚠️ MUST STOP AND WAIT FOR USER APPROVAL
+
+```markdown
+## 🚦 DESIGN REVIEW
+
+I've completed the architecture design as shown above.
+
+✅ Confirm design to start implementation?
+❌ Any adjustments needed?
+```
+
+---
+
+## 🛠️ PHASE 3: IMPLEMENT (Build)
+
+**Prerequisite**: User has approved design
+
+### Implementation Order:
+1. Foundation (types, base components, hooks)
+2. Build up (composite components, integration)
+3. Polish (error handling, loading states, animations)
+
+### Output format:
+```markdown
+## ✅ FEATURE IMPLEMENTATION COMPLETE
+
+### Created:
+- [x] `src/components/Feature/index.tsx`
+- [x] `src/hooks/useFeature.ts`
+
+### Usage:
+```tsx
+import { Feature } from '@/components/Feature';
+<Feature prop="value" />
+```
+
+### Demo/Test:
+[How to test the feature]
+```
+
+---
+
+
+---
+
+# 🎨 WORKFLOW 3: UI/UX DESIGN (Frontend)
+
+> **Use when**: "Make it pretty", "Design ideas", "UI/UX brainstorming", "Improve aesthetics"
+
+## FLOW
+```
+INSPIRATION → BRAINSTORMING → MOCKUP → HUMAN REVIEW → STRATEGY
+```
+
+---
+
+## 📥 PHASE 0: INPUT
+
+Request:
+1. **Vibe/Aesthetics** (Modern, Minimal, etc.)
+2. **Target Audience**
+3. **Inspiration** (Similar apps/sites)
+
+---
+
+## 🔍 PHASE 1: DISCOVERY & BRAINSTORMING
+
+**Goal**: Propose options, colors, and layout ideas.
+
+### Output format:
+```markdown
+## 🎨 DESIGN CONCEPTS
+
+### Recommended Style:
+- [Describe style, e.g., Glassmorphism]
+- Color Palette: [Hex codes]
+
+### Option A: [Name]
+- Layout: [Description]
+- Pros/Cons: [...]
+
+### Option B: [Name]
+- Layout: [Description]
+- Pros/Cons: [...]
+
+### ✨ Wow Factor:
+- [Micro-interaction idea]
+```
+
+---
+
+## 🚦 CHECKPOINT: DESIGN REVIEW
+
+### ⚠️ MUST STOP AND WAIT FOR USER PREFERENCE
+
+```markdown
+## 🚦 DESIGN FEEDBACK
+Which option do you prefer? Any changes to colors/vibe?
+```
+
+---
+
+## 📝 PHASE 2: DETAILED MOCKUP
+
+**Goal**: Clear structure before coding
+
+### Output format:
+```markdown
+## 🖼️ VISUAL STRUCTURE (Wireframe)
+[ASCII or Text Description of Layout]
+
+### Component Specs:
+- Shadows, Borders, Typography settings
+```
+
+---
+
+# 📋 QUICK DECISION: WHICH WORKFLOW?
+
+| User Request | Workflow |
+|--------------|----------|
+| "Fix bug...", "Error...", "Issue..." | 🐛 Bug-Fix |
+| "Add feature...", "Logic...", "Backend..." | 🚀 Feature |
+| "Make it pretty...", "Design...", "UI ideas...", "Brainstorm layout..." | 🎨 UI/UX Design |
+| Unclear | **ASK USER** before starting |
+

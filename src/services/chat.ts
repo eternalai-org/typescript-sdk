@@ -7,18 +7,20 @@ import type {
   ChatCompletionResponse,
 } from '../types';
 import { Flux } from './flux';
+import { Glm } from './glm';
 import { NanoBanana } from './nano-banana';
 import { Tavily } from './tavily';
 import { UncensoredAI } from './uncensored-ai';
 import { Wan } from './wan';
 
 const FLUX_PREFIX = 'flux/';
+const GLM_PREFIX = 'glm/';
 const NANO_BANANA_PREFIX = 'nano-banana/';
 const TAVILY_PREFIX = 'tavily/';
 const UNCENSORED_AI_PREFIX = 'uncensored-ai/';
 const WAN_PREFIX = 'wan/';
 
-type CustomProvider = 'flux' | 'nano-banana' | 'tavily' | 'uncensored-ai' | 'wan' | null;
+type CustomProvider = 'flux' | 'glm' | 'nano-banana' | 'tavily' | 'uncensored-ai' | 'wan' | null;
 
 /**
  * Chat service for sending messages and receiving responses
@@ -27,6 +29,7 @@ export class Chat {
   private readonly config: EternalAIConfig;
   private readonly baseUrl = 'https://open.eternalai.org/api/v1';
   private readonly flux: Flux;
+  private readonly glm: Glm;
   private readonly nanoBanana: NanoBanana;
   private readonly tavily: Tavily;
   private readonly uncensoredAI: UncensoredAI;
@@ -35,6 +38,7 @@ export class Chat {
   constructor(config: EternalAIConfig) {
     this.config = config;
     this.flux = new Flux(config);
+    this.glm = new Glm(config);
     this.nanoBanana = new NanoBanana(config);
     this.tavily = new Tavily(config);
     this.uncensoredAI = new UncensoredAI(config);
@@ -51,6 +55,12 @@ export class Chat {
       return {
         provider: 'flux',
         modelName: model.slice(FLUX_PREFIX.length),
+      };
+    }
+    if (model.startsWith(GLM_PREFIX)) {
+      return {
+        provider: 'glm',
+        modelName: model.slice(GLM_PREFIX.length),
       };
     }
     if (model.startsWith(NANO_BANANA_PREFIX)) {
@@ -149,6 +159,14 @@ export class Chat {
           finish_reason: 'stop',
         }],
       };
+    }
+
+    if (provider === 'glm') {
+      if (request.stream) {
+        return this.glm.streamContent(request, modelName);
+      } else {
+        return this.glm.generateContent(request, modelName);
+      }
     }
 
     if (provider === 'nano-banana') {

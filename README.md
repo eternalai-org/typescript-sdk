@@ -184,6 +184,7 @@ console.log(search.choices[0].message.content);
 | OpenAI | `openai/gpt-5.1` | Chat |
 | Claude | `anthropic/claude-*` | Chat |
 | Gemini | `gemini/gemini-*` | Chat |
+| GLM | `glm/glm-4.5-flash` | Chat |
 | Grok | `xai/grok-*` | Chat |
 | Qwen | `qwen/qwen-*` | Chat |
 | Flux | `flux/flux-2-pro` | Image |

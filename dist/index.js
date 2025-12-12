@@ -182,6 +182,115 @@ var Flux = class {
   }
 };
 
+// src/services/glm.ts
+var Glm = class {
+  constructor(config) {
+    this.baseUrl = "https://open.eternalai.org/glm/api/paas/v4";
+    this.config = config;
+  }
+  /**
+   * Generate content using GLM endpoint (non-streaming)
+   * @param request - Chat completion request in OpenAI format
+   * @param glmModel - The GLM model to use (default: glm-4.5-flash)
+   * @returns Chat completion response in OpenAI format
+   */
+  async generateContent(request, glmModel = "glm-4.5-flash") {
+    const url = `${this.baseUrl}/chat/completions`;
+    const headers = {
+      "Content-Type": "application/json",
+      "Accept-Language": "en-US,en",
+      Authorization: `Bearer ${this.config.apiKey}`
+    };
+    const body = {
+      ...request,
+      model: glmModel,
+      stream: false
+    };
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`GLM request failed with status ${response.status}: ${errorText}`);
+    }
+    return await response.json();
+  }
+  /**
+   * Stream content using GLM endpoint
+   * @param request - Chat completion request in OpenAI format
+   * @param glmModel - The GLM model to use (default: glm-4.5-flash)
+   * @returns Async iterable of chat completion chunks
+   */
+  async *streamContent(request, glmModel = "glm-4.5-flash") {
+    const url = `${this.baseUrl}/chat/completions`;
+    const headers = {
+      "Content-Type": "application/json",
+      "Accept-Language": "en-US,en",
+      Authorization: `Bearer ${this.config.apiKey}`
+    };
+    const body = {
+      ...request,
+      model: glmModel,
+      stream: true
+    };
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: this.createAbortSignal()
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`GLM streaming request failed with status ${response.status}: ${errorText}`);
+    }
+    if (!response.body) {
+      throw new Error("Response body is not readable");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine === "" || trimmedLine === "data: [DONE]") {
+            continue;
+          }
+          if (trimmedLine.startsWith("data: ")) {
+            const data = trimmedLine.slice(6);
+            try {
+              const chunk = JSON.parse(data);
+              yield chunk;
+            } catch {
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  /**
+   * Create abort signal with timeout
+   */
+  createAbortSignal() {
+    if (this.config.timeout) {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), this.config.timeout);
+      return controller.signal;
+    }
+    return void 0;
+  }
+};
+
 // src/utils/image.ts
 async function uploadImageToStorage(base64Data, mimeType) {
   const uploadUrl = "https://api.eternalai.org/api/agent/upload-image?admin_key=eai2024";
@@ -918,6 +1027,7 @@ var Wan = class {
 
 // src/services/chat.ts
 var FLUX_PREFIX = "flux/";
+var GLM_PREFIX = "glm/";
 var NANO_BANANA_PREFIX = "nano-banana/";
 var TAVILY_PREFIX = "tavily/";
 var UNCENSORED_AI_PREFIX = "uncensored-ai/";
@@ -927,6 +1037,7 @@ var Chat = class {
     this.baseUrl = "https://open.eternalai.org/api/v1";
     this.config = config;
     this.flux = new Flux(config);
+    this.glm = new Glm(config);
     this.nanoBanana = new NanoBanana(config);
     this.tavily = new Tavily(config);
     this.uncensoredAI = new UncensoredAI(config);
@@ -942,6 +1053,12 @@ var Chat = class {
       return {
         provider: "flux",
         modelName: model.slice(FLUX_PREFIX.length)
+      };
+    }
+    if (model.startsWith(GLM_PREFIX)) {
+      return {
+        provider: "glm",
+        modelName: model.slice(GLM_PREFIX.length)
       };
     }
     if (model.startsWith(NANO_BANANA_PREFIX)) {
@@ -1003,6 +1120,13 @@ var Chat = class {
           finish_reason: "stop"
         }]
       };
+    }
+    if (provider === "glm") {
+      if (request.stream) {
+        return this.glm.streamContent(request, modelName);
+      } else {
+        return this.glm.generateContent(request, modelName);
+      }
     }
     if (provider === "nano-banana") {
       if (request.stream) {
